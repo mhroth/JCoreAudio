@@ -1,0 +1,253 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		908730DB156AC9220011F922 /* JCoreAudio.m in Sources */ = {isa = PBXBuildFile; fileRef = 908730DA156AC9220011F922 /* JCoreAudio.m */; };
+		908730E2156ACF0C0011F922 /* JavaVM.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 908730E1156ACF0C0011F922 /* JavaVM.framework */; };
+		908730E4156ACF370011F922 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 908730E3156ACF370011F922 /* Foundation.framework */; };
+		908730E6156ACF8F0011F922 /* com_synthbot_JCoreAudio_JCoreAudio.h in Headers */ = {isa = PBXBuildFile; fileRef = 908730E5156ACF8F0011F922 /* com_synthbot_JCoreAudio_JCoreAudio.h */; };
+		908730EE156AD0E80011F922 /* CoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 908730ED156AD0E80011F922 /* CoreServices.framework */; };
+		908730F2156AD3B60011F922 /* AudioUnit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 908730F1156AD3B60011F922 /* AudioUnit.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		908730CD156AC9220011F922 /* JCoreAudio.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = JCoreAudio.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
+		908730D8156AC9220011F922 /* JCoreAudio-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "JCoreAudio-Prefix.pch"; sourceTree = "<group>"; };
+		908730D9156AC9220011F922 /* JCoreAudio.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = JCoreAudio.h; sourceTree = "<group>"; };
+		908730DA156AC9220011F922 /* JCoreAudio.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = JCoreAudio.m; sourceTree = "<group>"; };
+		908730E1156ACF0C0011F922 /* JavaVM.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaVM.framework; path = System/Library/Frameworks/JavaVM.framework; sourceTree = SDKROOT; };
+		908730E3156ACF370011F922 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
+		908730E5156ACF8F0011F922 /* com_synthbot_JCoreAudio_JCoreAudio.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = com_synthbot_JCoreAudio_JCoreAudio.h; sourceTree = "<group>"; };
+		908730ED156AD0E80011F922 /* CoreServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreServices.framework; path = System/Library/Frameworks/CoreServices.framework; sourceTree = SDKROOT; };
+		908730F1156AD3B60011F922 /* AudioUnit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioUnit.framework; path = System/Library/Frameworks/AudioUnit.framework; sourceTree = SDKROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		908730CA156AC9220011F922 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				908730F2156AD3B60011F922 /* AudioUnit.framework in Frameworks */,
+				908730EE156AD0E80011F922 /* CoreServices.framework in Frameworks */,
+				908730E4156ACF370011F922 /* Foundation.framework in Frameworks */,
+				908730E2156ACF0C0011F922 /* JavaVM.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		908730C2156AC9210011F922 = {
+			isa = PBXGroup;
+			children = (
+				908730D6156AC9220011F922 /* JCoreAudio */,
+				908730CF156AC9220011F922 /* Frameworks */,
+				908730CE156AC9220011F922 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		908730CE156AC9220011F922 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				908730CD156AC9220011F922 /* JCoreAudio.dylib */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		908730CF156AC9220011F922 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				908730F1156AD3B60011F922 /* AudioUnit.framework */,
+				908730ED156AD0E80011F922 /* CoreServices.framework */,
+				908730E3156ACF370011F922 /* Foundation.framework */,
+				908730E1156ACF0C0011F922 /* JavaVM.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		908730D6156AC9220011F922 /* JCoreAudio */ = {
+			isa = PBXGroup;
+			children = (
+				908730E5156ACF8F0011F922 /* com_synthbot_JCoreAudio_JCoreAudio.h */,
+				908730D9156AC9220011F922 /* JCoreAudio.h */,
+				908730DA156AC9220011F922 /* JCoreAudio.m */,
+				908730D7156AC9220011F922 /* Supporting Files */,
+			);
+			path = JCoreAudio;
+			sourceTree = "<group>";
+		};
+		908730D7156AC9220011F922 /* Supporting Files */ = {
+			isa = PBXGroup;
+			children = (
+				908730D8156AC9220011F922 /* JCoreAudio-Prefix.pch */,
+			);
+			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		908730CB156AC9220011F922 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				908730E6156ACF8F0011F922 /* com_synthbot_JCoreAudio_JCoreAudio.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		908730CC156AC9220011F922 /* JCoreAudio */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 908730DE156AC9220011F922 /* Build configuration list for PBXNativeTarget "JCoreAudio" */;
+			buildPhases = (
+				908730C9156AC9220011F922 /* Sources */,
+				908730CA156AC9220011F922 /* Frameworks */,
+				908730CB156AC9220011F922 /* Headers */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = JCoreAudio;
+			productName = JCoreAudio;
+			productReference = 908730CD156AC9220011F922 /* JCoreAudio.dylib */;
+			productType = "com.apple.product-type.library.dynamic";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		908730C4156AC9210011F922 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0430;
+				ORGANIZATIONNAME = "-";
+			};
+			buildConfigurationList = 908730C7156AC9210011F922 /* Build configuration list for PBXProject "JCoreAudio" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 908730C2156AC9210011F922;
+			productRefGroup = 908730CE156AC9220011F922 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				908730CC156AC9220011F922 /* JCoreAudio */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		908730C9156AC9220011F922 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				908730DB156AC9220011F922 /* JCoreAudio.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		908730DC156AC9220011F922 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
+				COPY_PHASE_STRIP = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.4;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = libJCoreAudio;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		908730DD156AC9220011F922 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.4;
+				PRODUCT_NAME = libJCoreAudio;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		908730DF156AC9220011F922 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "JCoreAudio/JCoreAudio-Prefix.pch";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		908730E0156AC9220011F922 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "JCoreAudio/JCoreAudio-Prefix.pch";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		908730C7156AC9210011F922 /* Build configuration list for PBXProject "JCoreAudio" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				908730DC156AC9220011F922 /* Debug */,
+				908730DD156AC9220011F922 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		908730DE156AC9220011F922 /* Build configuration list for PBXNativeTarget "JCoreAudio" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				908730DF156AC9220011F922 /* Debug */,
+				908730E0156AC9220011F922 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 908730C4156AC9210011F922 /* Project object */;
+}
