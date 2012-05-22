@@ -58,7 +58,9 @@ public class AudioLet {
   
   @Override
   public String toString() {
-    return "AudioLet " + name + " : " + (isInput ? "input" : "output") + " " + numChannels + " channels.";
+    return "AudioLet " + name + " : " + 
+        ((numChannels == 1) ? "mono " : (numChannels == 2) ? "stereo " : numChannels + " ") + 
+        (isInput ? "input" : "output") + ".";
   }
   
   @Override
@@ -66,13 +68,13 @@ public class AudioLet {
     if (o == null) return false;
     if (o instanceof AudioLet) {
       AudioLet l = (AudioLet) o;
-      return l.index == this.index;
+      return (l.index == this.index) && (l.isInput == this.isInput);
     } else return false;
   }
   
   @Override
   public int hashCode() {
-    return index;
+    return (isInput ? 1 : -1) * (index+1);
   }
 
 }

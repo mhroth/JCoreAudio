@@ -21,28 +21,30 @@
 
 package com.synthbot.JCoreAudio;
 
+import java.util.HashSet;
 import java.util.Set;
 
 /**
- * 
+ * An <code>AudioDevice</code> represents a system device capable of processing audio, either
+ * as an input, an output, or both.
  * @author Martin Roth (mhroth@gmail.com)
  */
 public class AudioDevice {
   
   /**
-   * 
+   * The name of this device.
    */
   public final String name;
   
   /**
-   * 
+   * The name of the manufacturer of this device.
    */
   public final String manufacturer;
 
   /**
-   * 
+   * The system-assigned id of this device.
    */
-  public final int id;
+  private final int id;
   
   private final Set<AudioLet> inputLetSet;
   
@@ -58,21 +60,24 @@ public class AudioDevice {
   }
   
   /**
-   * 
-   * @return
+   * @return The set of input <code>AudioLet</code>s of this device.
    */
-  public int getNumInputChannels() {
-    return inputLetSet.size();
+  public Set<AudioLet> getInputSet() {
+    // return a defensive copy of the inputLetSet
+    return new HashSet<AudioLet>(inputLetSet);
   }
   
   /**
-   * 
-   * @return
+   * @return The set of output <code>AudioLet</code>s of this device.
    */
-  public int getNumOutputChannels() {
-    return outputLetSet.size();
+  public Set<AudioLet> getOutputSet() {
+    return new HashSet<AudioLet>(outputLetSet);
   }
   
+  /**
+   * For debug only.
+   */
+  @Deprecated
   public void printChannels() {
     for (AudioLet c : inputLetSet) {
       System.out.println(c.toString());
