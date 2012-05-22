@@ -21,6 +21,8 @@
 
 package com.synthbot.JCoreAudio;
 
+import java.util.Set;
+
 /**
  * 
  * @author Martin Roth (mhroth@gmail.com)
@@ -30,34 +32,60 @@ public class AudioDevice {
   /**
    * 
    */
-  public final boolean isInput;
-  
-  /**
-   * 
-   */
   public final String name;
   
   /**
    * 
    */
-  public final int numChannels;
+  public final String manufacturer;
 
   /**
    * 
    */
   public final int id;
   
-  private AudioDevice(int id, String name, boolean isInput, int numChannels) {
+  private final Set<AudioLet> inputLetSet;
+  
+  private final Set<AudioLet> outputLetSet;
+  
+  private AudioDevice(int id, String name, String manufacturer,
+      Set<AudioLet> inputLetSet, Set<AudioLet> outputLetSet) {
     this.id = id;
     this.name = name;
-    this.isInput = isInput;
-    this.numChannels = numChannels;
+    this.manufacturer = manufacturer;
+    this.inputLetSet = inputLetSet;
+    this.outputLetSet = outputLetSet;
+  }
+  
+  /**
+   * 
+   * @return
+   */
+  public int getNumInputChannels() {
+    return inputLetSet.size();
+  }
+  
+  /**
+   * 
+   * @return
+   */
+  public int getNumOutputChannels() {
+    return outputLetSet.size();
+  }
+  
+  public void printChannels() {
+    for (AudioLet c : inputLetSet) {
+      System.out.println(c.toString());
+    }
+    for (AudioLet c : outputLetSet) {
+      System.out.println(c.toString());
+    }
   }
   
   @Override
   public String toString() {
-    return "Audio Device " + id + ": " + name + " - " + (isInput ? "input" : "output") + " -> "
-        + numChannels + " channels";
+    printChannels();
+    return "Audio Device " + id + ": " + name + " by " + manufacturer + ".";
   }
   
   @Override
