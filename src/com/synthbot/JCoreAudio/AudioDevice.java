@@ -50,13 +50,23 @@ public class AudioDevice {
   
   private final Set<AudioLet> outputLetSet;
   
-  private AudioDevice(int id, String name, String manufacturer,
-      Set<AudioLet> inputLetSet, Set<AudioLet> outputLetSet) {
+  private AudioDevice(int id, String name, String manufacturer) {
     this.id = id;
     this.name = name;
     this.manufacturer = manufacturer;
-    this.inputLetSet = inputLetSet;
-    this.outputLetSet = outputLetSet;
+    
+    this.inputLetSet = new HashSet<AudioLet>();
+    queryLetSet(this, id, true, inputLetSet);
+    
+    this.outputLetSet = new HashSet<AudioLet>();
+    queryLetSet(this, id, false, inputLetSet);
+  }
+  
+  private static native void queryLetSet(AudioDevice device, int deviceId, boolean isInput,
+      Set<AudioLet> set);
+  
+  public int getId() {
+    return id;
   }
   
   /**

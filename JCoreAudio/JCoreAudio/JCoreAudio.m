@@ -22,6 +22,8 @@
 #import <AudioUnit/AudioUnit.h>
 #import <CoreAudio/CoreAudio.h>
 #import <CoreServices/CoreServices.h>
+#import "com_synthbot_JCoreAudio_AudioDevice.h"
+#import "com_synthbot_JCoreAudio_AudioLet.h"
 #import "com_synthbot_JCoreAudio_JCoreAudio.h"
 #import "JCoreAudio.h"
 
@@ -70,9 +72,7 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_fillAudioDeviceLi
     (JNIEnv *env, jclass jclazz, jobject jlist) {
   
   jclass jclazzAudioDevice = (*env)->FindClass(env, "com/synthbot/JCoreAudio/AudioDevice");
-  jclass jclazzAudioLet = (*env)->FindClass(env, "com/synthbot/JCoreAudio/AudioLet");
   jclass jclazzArrayList = (*env)->FindClass(env, "java/util/ArrayList");
-  jclass jclazzHashSet = (*env)->FindClass(env, "java/util/HashSet");
       
   // get number of AudioDevices
   UInt32 arraySize;
@@ -93,76 +93,75 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_fillAudioDeviceLi
     char strManufacturer[++propSize]; memset(strManufacturer, 0, sizeof(strManufacturer));
     AudioDeviceGetProperty(audioDeviceIds[i], 0, false, kAudioDevicePropertyDeviceManufacturer, &propSize, strManufacturer);
     
-    // get the number of input channels that this AudioDevice has 
-    bool isInput = true;
-    AudioDeviceGetPropertyInfo(audioDeviceIds[i], 0, isInput, kAudioDevicePropertyStreamConfiguration, &propSize, NULL);
-    int numLets  = propSize/sizeof(AudioBufferList);
-    AudioBufferList buffInputList[numLets];
-    AudioDeviceGetProperty(audioDeviceIds[i], 0, isInput, kAudioDevicePropertyStreamConfiguration, &propSize, buffInputList);
-                 
-    // create a new Set of input AudioLets belonging to this AudioDevice
-    jobject jInputSet = (*env)->NewObject(env, jclazzHashSet,
-        (*env)->GetMethodID(env, jclazzHashSet, "<init>", "(I)V"),
-        numLets);
-                                          
-    for (int j = 0; j < numLets; j++) {
-      AudioDeviceGetPropertyInfo(audioDeviceIds[i], j, isInput, kAudioDevicePropertyChannelName, &propSize, NULL);
-      char strADName[++propSize]; memset(strADName, 0, sizeof(strADName));
-      AudioDeviceGetProperty(audioDeviceIds[i], j, isInput, kAudioDevicePropertyChannelName, &propSize, strADName);
-      
-      // create a new AudioChannel object
-      jobject jAudioChannel = (*env)->NewObject(env, jclazzAudioLet,
-          (*env)->GetMethodID(env, jclazzAudioLet, "<init>", "(ILjava/lang/String;ZI)V"),
-          (*env)->NewStringUTF(env, strADName),
-          j, isInput, buffInputList[j].mBuffers[0].mNumberChannels);
-      
-      // add the AudioChannel to the inputSet
-      (*env)->CallVoidMethod(env, jInputSet,
-          (*env)->GetMethodID(env, jclazzHashSet, "add", "(Ljava/lang/Object;)Z"),
-          jAudioChannel);
-    }
-    
-    // get the number of output channels that this AudioLet has 
-    isInput = false;
-    AudioDeviceGetPropertyInfo(audioDeviceIds[i], 0, isInput, kAudioDevicePropertyStreamConfiguration, &propSize, NULL);
-    numLets  = propSize/sizeof(AudioBufferList);
-    AudioBufferList buffOutputList[numLets];
-    AudioDeviceGetProperty(audioDeviceIds[i], 0, isInput, kAudioDevicePropertyStreamConfiguration, &propSize, buffOutputList);
-    
-    // create a new Set of output AudioLets belonging to this AudioDevice
-    jobject jOutputSet = (*env)->NewObject(env, jclazzHashSet,
-        (*env)->GetMethodID(env, jclazzHashSet, "<init>", "(I)V"),
-        numLets);
-    
-    for (int j = 0; j < numLets; j++) {
-      AudioDeviceGetPropertyInfo(audioDeviceIds[i], j, isInput, kAudioDevicePropertyChannelName, &propSize, NULL);
-      char strADName[++propSize]; memset(strADName, 0, sizeof(strADName));
-      AudioDeviceGetProperty(audioDeviceIds[i], j, isInput, kAudioDevicePropertyChannelName, &propSize, strADName);
-      
-      // create a new AudioChannel object
-      jobject jAudioChannel = (*env)->NewObject(env, jclazzAudioLet,
-          (*env)->GetMethodID(env, jclazzAudioLet, "<init>", "(ILjava/lang/String;ZI)V"),
-          (*env)->NewStringUTF(env, strADName),
-          j, isInput, buffOutputList[j].mBuffers[0].mNumberChannels);
-      
-      // add the AudioChannel to the inputSet
-      (*env)->CallVoidMethod(env, jOutputSet,
-          (*env)->GetMethodID(env, jclazzHashSet, "add", "(Ljava/lang/Object;)Z"),
-          jAudioChannel);
-    }
-    
     // create the AudioDevice object
     jobject jAudioDevice = (*env)->NewObject(env, jclazzAudioDevice,
-        (*env)->GetMethodID(env, jclazzAudioDevice, "<init>", "(ILjava/lang/String;Ljava/lang/String;Ljava/util/Set;Ljava/util/Set;)V"),
+        (*env)->GetMethodID(env, jclazzAudioDevice, "<init>", "(ILjava/lang/String;Ljava/lang/String;)V"),
         audioDeviceIds[i],
         (*env)->NewStringUTF(env, strName),
-        (*env)->NewStringUTF(env, strManufacturer),
-        jInputSet, jOutputSet);
+        (*env)->NewStringUTF(env, strManufacturer));
     
     // add the AudioDevice object to the given List
     (*env)->CallVoidMethod(env, jlist,
         (*env)->GetMethodID(env, jclazzArrayList, "add", "(Ljava/lang/Object;)Z"),
         jAudioDevice);
+  }
+}
+
+JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_AudioDevice_queryLetSet
+    (JNIEnv *env, jclass jclazz, jobject jobj, jint deviceId, jboolean isInput, jobject jset) {
+  
+  jclass jclazzAudioLet = (*env)->FindClass(env, "com/synthbot/JCoreAudio/AudioLet");
+  jclass jclazzHashSet = (*env)->FindClass(env, "java/util/HashSet");
+      
+  // get the number of channels that this AudioDevice has
+  UInt32 propSize = 0;
+  AudioDeviceGetPropertyInfo(deviceId, 0, isInput, kAudioDevicePropertyStreamConfiguration, &propSize, NULL);
+  int numLets  = propSize/sizeof(AudioBufferList);
+  AudioBufferList buffLetList[numLets];
+  AudioDeviceGetProperty(deviceId, 0, isInput, kAudioDevicePropertyStreamConfiguration, &propSize, buffLetList);
+  
+  for (int j = 0; j < numLets; j++) {
+    AudioDeviceGetPropertyInfo(deviceId, j, isInput, kAudioDevicePropertyChannelName, &propSize, NULL);
+    char strADName[++propSize]; memset(strADName, 0, sizeof(strADName));
+    AudioDeviceGetProperty(deviceId, j, isInput, kAudioDevicePropertyChannelName, &propSize, strADName);
+    
+    // create a new AudioChannel object
+    jobject jAudioLet = (*env)->NewObject(env, jclazzAudioLet,
+        (*env)->GetMethodID(env, jclazzAudioLet, "<init>", "(Lcom/synthbot/JCoreAudio/AudioDevice;ILjava/lang/String;ZI)V"),
+        jobj, j, (*env)->NewStringUTF(env, strADName),
+        isInput, buffLetList[j].mBuffers[0].mNumberChannels);
+    
+    // add the AudioChannel to the inputSet
+    (*env)->CallVoidMethod(env, jset,
+        (*env)->GetMethodID(env, jclazzHashSet, "add", "(Ljava/lang/Object;)Z"),
+        jAudioLet);
+  }
+}
+
+JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_AudioLet_queryAvailableFormats
+    (JNIEnv *env, jclass jclazz, jint deviceId, jint letIndex, jboolean isInput, jobject jset) {
+  
+  jclass jclazzAudioFormat = (*env)->FindClass(env, "com/synthbot/JCoreAudio/AudioFormat");
+  jclass jclazzHashSet = (*env)->FindClass(env, "java/util/HashSet");
+      
+  UInt32 propSize = 0;
+  AudioDeviceGetPropertyInfo(deviceId, letIndex, isInput, kAudioDevicePropertyStreamFormats, &propSize, NULL);
+  int numFormats = propSize/sizeof(AudioStreamBasicDescription);
+  AudioStreamBasicDescription formats[numFormats]; memset(formats, 0, propSize);
+  AudioDeviceGetProperty(deviceId, letIndex, isInput, kAudioDevicePropertyStreamFormats, &propSize, formats);
+      
+  for (int i = 0; i < numFormats; i++) {
+    AudioStreamBasicDescription asbd = formats[i];
+    
+    // create a new AudioFormat object
+    jobject jAudioFormat = (*env)->NewObject(env, jclazzAudioFormat,
+        (*env)->GetMethodID(env, jclazzAudioFormat, "<init>", "(II)V"),
+        (jint) asbd.mSampleRate, (jint) asbd.mBitsPerChannel);
+    
+    // add the AudioFormat object to the given Set
+    (*env)->CallVoidMethod(env, jset,
+        (*env)->GetMethodID(env, jclazzHashSet, "add", "(Ljava/lang/Object;)Z"),
+        jAudioFormat);
   }
 }
 
