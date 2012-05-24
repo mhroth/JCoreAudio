@@ -34,12 +34,12 @@ public class AudioLet {
   /**
    * The {@link AudioDevice} that this <code>AudioLet</code> belongs to.
    */
-  private AudioDevice device;
+  public final AudioDevice device;
   
   /**
    * The system-assigned index of this <code>AudioLet</code>. Only used for internal tracking.
    */
-  private int index;
+  private final int index;
   
   /**
    * The name of this let. It may be that the let has no name, in which case an empty
