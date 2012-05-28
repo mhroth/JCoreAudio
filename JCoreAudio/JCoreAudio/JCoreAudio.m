@@ -27,6 +27,59 @@
 #import "com_synthbot_JCoreAudio_JCoreAudio.h"
 #import "JCoreAudio.h"
 
+jclass JCA_jclazzJCoreAudio;
+jmethodID JCA_fireOnCoreAudioCallbackMid;
+
+typedef struct JCoreAudioStruct {
+  AudioUnit auhalInput;
+  AudioUnit auhalOutput;
+} JCoreAudioStruct;
+
+JavaVM *JCoreAudio_globalJvm;
+JCoreAudioStruct *jcaStruct;
+
+JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved) {
+  // require JNI_VERSION_1_4 for access to NIO functions
+  // http://docs.oracle.com/javase/1.4.2/docs/guide/jni/jni-14.html
+  JCoreAudio_globalJvm = jvm; // store the JVM so that it can be used to attach CoreAudio threads to the JVM during callbacks
+  
+  jcaStruct = (JCoreAudioStruct *) malloc(sizeof(JCoreAudioStruct));
+  
+  JNIEnv *env = NULL;
+  (*jvm)->GetEnv(jvm, (void **) &env, JNI_VERSION_1_4);
+//  jcaStruct->jclazzJCoreAudio = (*env)->FindClass(env, "com/synthbot/JCoreAudio/JCoreAudio");
+//  jcaStruct->fireOnCoreAudioCallbackMid = (*env)->GetStaticMethodID(env, jcaStruct->jclazzJCoreAudio,
+//      "fireOnCoreAudioCallback", "()V");
+  
+  JCA_jclazzJCoreAudio = (*env)->FindClass(env, "com/synthbot/JCoreAudio/JCoreAudio");
+  JCA_fireOnCoreAudioCallbackMid = (*env)->GetStaticMethodID(env, JCA_jclazzJCoreAudio,
+      "fireOnCoreAudioCallback", "()V");
+  
+  return JNI_VERSION_1_4;
+}
+
+void JNI_OnUnload(JavaVM *vm, void *reserved) {
+  free(jcaStruct);
+}
+
+// render callback for output AUHAL
+// gets output audio from Java and sends it to the output hardware device
+OSStatus outputRenderCallback(void *inRefCon, AudioUnitRenderActionFlags *ioActionFlags,
+  const AudioTimeStamp *inTimeStamp, UInt32 inBusNumber, UInt32 inNumberFrames, AudioBufferList *ioData) {
+  static jclass jclassJCA = 0;
+  
+  JNIEnv *env = nil;
+  jint res = (*JCoreAudio_globalJvm)->AttachCurrentThreadAsDaemon(JCoreAudio_globalJvm, (void **) &env, NULL);
+  if (res == JNI_OK) {
+    // make audio callback to Java
+//    JCoreAudioStruct *jca = (JCoreAudioStruct *) inRefCon; 
+    if (jclassJCA == 0) jclassJCA = (*env)->FindClass(env, "com/synthbot/JCoreAudio/JCoreAudio");
+    (*env)->CallStaticVoidMethod(env, jclassJCA, JCA_fireOnCoreAudioCallbackMid);
+  }
+  
+  return noErr; // everything is gonna be ok
+}
+
 // https://developer.apple.com/library/mac/#documentation/MusicAudio/Conceptual/CoreAudioOverview/SystemAudioUnits/SystemAudioUnits.html#//apple_ref/doc/uid/TP40003577-CH8-SW2
 void Java_com_synthbot_JCoreAudio_JCoreAudio_fillComponentList
     (JNIEnv *env, jclass jclazz, jobject jlist) {
@@ -162,6 +215,114 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_AudioLet_queryAvailableForma
     (*env)->CallVoidMethod(env, jset,
         (*env)->GetMethodID(env, jclazzHashSet, "add", "(Ljava/lang/Object;)Z"),
         jAudioFormat);
+  }
+}
+
+// file:///Users/mhroth/Library/Developer/Shared/Documentation/DocSets/com.apple.adc.documentation.AppleLion.CoreReference.docset/Contents/Resources/Documents/index.html#technotes/tn2091/_index.html
+JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_initialize
+  (JNIEnv *env, jclass jclazz, jobject jinputSet, jint jinputDeviceId,
+      jobject joutputSet, jint joutputDeviceId, jint jblockSize, jfloat jsampleRate) {
+   
+  // initialise to known values
+  jcaStruct->auhalInput = NULL;
+  jcaStruct->auhalOutput = NULL;
+  OSStatus err = noErr;
+  
+  // create an AUHAL (for 10.6 and later)
+  AudioComponent comp; // find AUHAL component
+  AudioComponentDescription desc;
+  desc.componentType = kAudioUnitType_Output;
+  desc.componentSubType = kAudioUnitSubType_HALOutput;
+  desc.componentManufacturer = kAudioUnitManufacturer_Apple;
+  desc.componentFlags = 0;
+  desc.componentFlagsMask = 0;
+  comp = AudioComponentFindNext(NULL, &desc);
+  if (comp == NULL) {
+    // TODO(mhroth): Throw an Exception. Something has gone terribly wrong.
+  }
+  AudioComponentInstanceNew(comp, &(jcaStruct->auhalOutput)); // open the component and initialise it (10.6 and later)
+
+  // debug
+  if (joutputSet != NULL) {
+    // the output set is non-empty. Configure the AUHAL to be in the graph and provide output
+    
+    // disable input on the AUHAL
+    UInt32 enableIO = 0;
+    err =  AudioUnitSetProperty(jcaStruct->auhalOutput,
+        kAudioOutputUnitProperty_EnableIO,
+        kAudioUnitScope_Input,
+        1, // input element
+        &enableIO, sizeof(enableIO));
+    
+    // enable output on the AUHAL
+    enableIO = 1;
+    err =  AudioUnitSetProperty(jcaStruct->auhalOutput,
+        kAudioOutputUnitProperty_EnableIO,
+        kAudioUnitScope_Output,
+        0, // output element
+        &enableIO, sizeof(enableIO));
+    
+    // set the hardware device to which the AUHAL is connected
+    err = AudioUnitSetProperty(jcaStruct->auhalOutput,
+        kAudioOutputUnitProperty_CurrentDevice, 
+        kAudioUnitScope_Global, 
+        0, 
+        &joutputDeviceId, sizeof(AudioDeviceID));
+
+    // TODO(mhroth): configure channel map
+    
+    // register audio callback
+    AURenderCallbackStruct renderCallbackStruct;
+    renderCallbackStruct.inputProc = &outputRenderCallback;
+    renderCallbackStruct.inputProcRefCon = jcaStruct;
+    err = AudioUnitSetProperty(jcaStruct->auhalOutput, 
+        kAudioUnitProperty_SetRenderCallback, // kAudioOutputUnitProperty_SetInputCallback kAudioUnitProperty_SetRenderCallback
+        kAudioUnitScope_Global,
+        0,
+        &renderCallbackStruct, sizeof(AURenderCallbackStruct));
+    
+    // configure output device to given sample
+    AudioStreamBasicDescription asbd;
+    UInt32 propSize = sizeof(AudioStreamBasicDescription);
+    AudioUnitGetProperty (jcaStruct->auhalOutput,
+        kAudioUnitProperty_StreamFormat,
+        kAudioUnitScope_Output,
+        0,
+        &asbd, &propSize);
+    
+    printf("AudioStreamBasicDescription\n  mSampleRate: %g\n  mChannelsPerFrame: %i\n  mBytesPerFrame:%i\n",
+        asbd.mSampleRate, asbd.mChannelsPerFrame, asbd.mBytesPerFrame);
+    
+    asbd.mSampleRate = (Float64) jsampleRate; // update the sample rate
+    AudioUnitSetProperty(jcaStruct->auhalOutput,
+        kAudioUnitProperty_StreamFormat,
+        kAudioUnitScope_Input,
+        0,
+        &asbd, sizeof(AudioStreamBasicDescription));
+    
+    // now that the AUHAL is set up, initialise it
+    AudioUnitInitialize(jcaStruct->auhalOutput);
+  }
+}
+
+JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_uninitialize
+    (JNIEnv *env, jclass jclazz, jlong nativePtr) {
+  
+}
+
+JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_play
+    (JNIEnv *env, jclass jclazz, jboolean shouldPlay) {
+  if (shouldPlay) {
+    if (jcaStruct->auhalInput != NULL) AudioOutputUnitStart(jcaStruct->auhalInput);
+    if (jcaStruct->auhalOutput != NULL) {
+      OSStatus err = AudioOutputUnitStart(jcaStruct->auhalOutput);
+      if (err != noErr) {
+        printf("err = %i\n", err);
+      }
+    }
+  } else {
+    if (jcaStruct->auhalInput != NULL) AudioOutputUnitStop(jcaStruct->auhalInput);
+    if (jcaStruct->auhalOutput != NULL) AudioOutputUnitStop(jcaStruct->auhalOutput);
   }
 }
 

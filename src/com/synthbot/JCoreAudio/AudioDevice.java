@@ -59,7 +59,7 @@ public class AudioDevice {
     queryLetSet(this, id, true, inputLetSet);
     
     this.outputLetSet = new HashSet<AudioLet>();
-    queryLetSet(this, id, false, inputLetSet);
+    queryLetSet(this, id, false, outputLetSet);
   }
   
   private static native void queryLetSet(AudioDevice device, int deviceId, boolean isInput,
@@ -83,6 +83,30 @@ public class AudioDevice {
   public Set<AudioLet> getOutputSet() {
     return new HashSet<AudioLet>(outputLetSet);
   }
+  
+  /**
+   * Returns the preferred buffer size of this device.
+   */
+  public int getPreferredBufferSize() {
+    return getPreferredBufferSize(id);
+  }
+  private native int getPreferredBufferSize(int id);
+  
+  /**
+   * Returns the minimum buffer size of this device.
+   */
+  public int getMinimumBufferSize() {
+    return getMinimumBufferSize(id);
+  }
+  private native int getMinimumBufferSize(int id);
+  
+  /**
+   * Returns the maximum buffer size of this device.
+   */
+  public int getMaximumBufferSize() {
+    return getMaximumBufferSize(id);
+  }
+  private native int getMaximumBufferSize(int id);
   
   /**
    * For debug only.

@@ -23,6 +23,22 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_fillComponentList
 JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_fillAudioDeviceList
   (JNIEnv *, jclass, jobject);
 
+/*
+ * Class:     com_synthbot_JCoreAudio_JCoreAudio
+ * Method:    initialise
+ * Signature: (Ljava/util/Set;ILjava/util/Set;IIF)V
+ */
+JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_initialize
+  (JNIEnv *, jclass, jobject, jint, jobject, jint, jint, jfloat);
+
+/*
+ * Class:     com_synthbot_JCoreAudio_JCoreAudio
+ * Method:    play
+ * Signature: (Z)V
+ */
+JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_play
+  (JNIEnv *, jclass, jboolean);
+
 #ifdef __cplusplus
 }
 #endif

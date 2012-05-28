@@ -28,15 +28,35 @@ import java.util.Set;
 
 public class JCoreAudio {
   
-  private static CoreAudioState state;
+  /**
+   * 
+   */
+  private static CoreAudioState state = CoreAudioState.UNINITIALIZED;
   
+  /**
+   * 
+   */
   private static AudioDevice currentInputDevice;
   
+  /**
+   * 
+   */
   private static AudioDevice currentOutputDevice;
   
+  /**
+   * 
+   */
   private static Set<AudioLet> currentInputLets;
   
+  /**
+   * 
+   */
   private static Set<AudioLet> currentOutputLets;
+  
+  /**
+   * 
+   */
+  private static final Set<CoreAudioListener> listeners = new HashSet<CoreAudioListener>();
  
   
   static {
@@ -68,28 +88,48 @@ public class JCoreAudio {
   private static native void fillAudioDeviceList(List<AudioDevice> list);
   
   /**
-   * 
-   * @param inputDevice
-   * @param outputDevice
+   * A convenience method for initialising only the output. Sometimes you just have something to say
+   * and don't want to listen.
    */
-  public static synchronized void initialize(Set<AudioLet> inputLets, Set<AudioLet> outputLets) {
+  public static synchronized void initialize(Set<AudioLet> outputLets, int blockSize, float sampleRate) {
+    initialize(null, outputLets, blockSize, sampleRate);
+  }
+  
+  /**
+   * 
+   * @param inputLets  A Set of AudioLets to use as input. May be <code>null</code> or an empty set.
+   * @param outputLets    A Set of AudioLets to use as output. May be <code>null</code> or an empty set.
+   */
+  public static synchronized void initialize(Set<AudioLet> inputLets, Set<AudioLet> outputLets,
+      int blockSize, float sampleRate) {
     if (state != CoreAudioState.UNINITIALIZED) {
       throw new IllegalStateException();
     }
-    // TODO(mhroth): ensure that the inputLets Set contains only input lets from the same AudioDevice
     if (!verifyLetSet(inputLets)) {
       throw new IllegalArgumentException();
     }
     if (!verifyLetSet(outputLets)) {
       throw new IllegalArgumentException();
     }
+    if ((inputLets == null || inputLets.isEmpty()) && (outputLets == null || outputLets.isEmpty())) {
+      throw new IllegalArgumentException("At least one of the input or output sets must be non-empty.");
+    }
     
-    currentInputLets = new HashSet<AudioLet>(inputLets); // defensive copy of letset
-    currentOutputLets = new HashSet<AudioLet>(outputLets);
-    currentInputDevice = inputLets.iterator().next().device;
-    currentOutputDevice = outputLets.iterator().next().device;
+    currentInputLets = (inputLets == null || inputLets.isEmpty()) ? null : new HashSet<AudioLet>(inputLets); // defensive copy of letset
+    currentOutputLets = (outputLets == null || outputLets.isEmpty()) ? null : new HashSet<AudioLet>(outputLets);
+    currentInputDevice = (inputLets == null) ? null : inputLets.iterator().next().device;
+    currentOutputDevice = (outputLets == null) ? null : outputLets.iterator().next().device;
+    
+    initialize(inputLets, (currentInputDevice == null) ? 0 : currentInputDevice.getId(),
+        outputLets, (currentOutputDevice == null) ? 0 : currentOutputDevice.getId(),
+        blockSize, sampleRate);
+    
     state = CoreAudioState.INITIALIZED;
   }
+  
+  // it is guaranteed that at least one of the input or output sets is non-empty
+  private static native void initialize(Set<AudioLet> inputLets, int inputAudioDeviceId,
+      Set<AudioLet> outputLets, int outputAudioDeviceId, int blockSize, float sampleRate);
   
   /**
    * Ensure that all <code>AudioLet</code>s in the set are from the same device and are all either
@@ -130,12 +170,34 @@ public class JCoreAudio {
   }
   
   /**
-   * Start playback.
+   * Indicates if CoreAudio is currently playing.
+   */
+  public static synchronized boolean isPlaying() {
+    return state == CoreAudioState.RUNNING;
+  }
+  
+  /**
+   * Indicates if JCoreAudio is initialised. The current state may thus be INITIALIZED or RUNNING.
+   */
+  public static boolean isInitialized() {
+    return (state == CoreAudioState.INITIALIZED || state == CoreAudioState.RUNNING);
+  }
+  
+  /**
+   * Indicates of JCoreAudio is uninitialized.
+   */
+  public static boolean isUninitialized() {
+    return (state == CoreAudioState.UNINITIALIZED);
+  }
+  
+  /**
+   * Start or resume playback.
    */
   public static synchronized void play() {
-    if (state != CoreAudioState.INITIALIZED) {
+    if (state == CoreAudioState.RUNNING) return; // already running, nothing to do
+    if (state == CoreAudioState.UNINITIALIZED) {
       throw new IllegalStateException("JCoreAudio must be in the INITIALIZED state to start playback. " +
-      		"It is currently in state " + state.name() + ".");
+      		"It is currently UNINITIALIZED.");
     }
     state = CoreAudioState.RUNNING;
     
@@ -147,20 +209,24 @@ public class JCoreAudio {
    * Pause playback.
    */
   public static synchronized void pause() {
-    if (state != CoreAudioState.RUNNING) {
-      throw new IllegalStateException("JCoreAudio must be in the RUNNING state to pause playback. " +
-          "It is currently in state " + state.name() + ".");
-    }
+    if (state != CoreAudioState.RUNNING) return;
     state = CoreAudioState.INITIALIZED;
     
     play(false);
   }
   
   /**
-   * Indicates if CoreAudio is currently playing.
+   * Indicates if JCoreAudio is currently configured with an input.
    */
-  public static synchronized boolean isPlaying() {
-    return state == CoreAudioState.RUNNING;
+  public static synchronized boolean hasInput() {
+    return (state.ordinal() >= CoreAudioState.INITIALIZED.ordinal()) &&  (currentInputDevice != null);
+  }
+  
+  /**
+   * Indicates if JCoreAudio is currently configured with an output.
+   */
+  public static synchronized boolean hasOutput() {
+    return (state.ordinal() >= CoreAudioState.INITIALIZED.ordinal()) &&  (currentOutputDevice != null);
   }
   
   /**
@@ -196,6 +262,39 @@ public class JCoreAudio {
     for (AudioDevice d : audioDeviceList) {
       System.out.println(d.toString());
     }
+    
+    JCoreAudio.addListener(new CoreAudioAdapter());
+    
+    Set<AudioLet> outputSet = audioDeviceList.get(2).getOutputSet();
+    
+    JCoreAudio.initialize(outputSet, 512, 44100.0f);
+    JCoreAudio.play();
+    
+    try {
+      Thread.sleep(2000);
+    } catch (InterruptedException e) {
+      e.printStackTrace(System.err);
+    }
+    
+    System.out.println("done.");
+  }
+  
+  public static synchronized void addListener(CoreAudioListener listener) {
+    listeners.add(listener);
+  }
+  
+  public static synchronized void removeListener(CoreAudioListener listener) {
+    listeners.remove(listener);
+  }
+  
+  
+  // ------ CoreAudioListener Callbacks ------
+  
+  private static void fireOnCoreAudioCallback() {
+    for (CoreAudioListener listener : listeners) {
+      listener.onCoreAudioCallback(currentInputLets, currentOutputLets);
+    }
   }
 
 }
+
