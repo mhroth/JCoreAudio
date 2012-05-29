@@ -33,6 +33,11 @@ jmethodID JCA_fireOnCoreAudioCallbackMid;
 typedef struct JCoreAudioStruct {
   AudioUnit auhalInput;
   AudioUnit auhalOutput;
+  int numChannelsInput;
+  int numChannelsOutput;
+  float **channelsInput;
+  float **channelsOutput;
+  int blockSize;
 } JCoreAudioStruct;
 
 JavaVM *JCoreAudio_globalJvm;
@@ -71,10 +76,19 @@ OSStatus outputRenderCallback(void *inRefCon, AudioUnitRenderActionFlags *ioActi
   JNIEnv *env = nil;
   jint res = (*JCoreAudio_globalJvm)->AttachCurrentThreadAsDaemon(JCoreAudio_globalJvm, (void **) &env, NULL);
   if (res == JNI_OK) {
-    // make audio callback to Java
-//    JCoreAudioStruct *jca = (JCoreAudioStruct *) inRefCon; 
+    // make audio callback to Java and fill the byte buffers
+    JCoreAudioStruct *jca = (JCoreAudioStruct *) inRefCon; 
     if (jclassJCA == 0) jclassJCA = (*env)->FindClass(env, "com/synthbot/JCoreAudio/JCoreAudio");
     (*env)->CallStaticVoidMethod(env, jclassJCA, JCA_fireOnCoreAudioCallbackMid);
+    
+    // interleave the channels to the backing buffers
+    // TODO(mhroth): vectorise this like a real man, ok?
+    float *caBuffer = (float *) ioData->mBuffers[0].mData;
+    for (int i = 0; i < jca->numChannelsOutput; i++) {
+      for (int j = 0, k = i; j < jca->blockSize; j++, k+=jca->numChannelsOutput) {
+        caBuffer[k] = jca->channelsOutput[i][j];
+      }
+    }
   }
   
   return noErr; // everything is gonna be ok
@@ -220,8 +234,9 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_AudioLet_queryAvailableForma
 
 // file:///Users/mhroth/Library/Developer/Shared/Documentation/DocSets/com.apple.adc.documentation.AppleLion.CoreReference.docset/Contents/Resources/Documents/index.html#technotes/tn2091/_index.html
 JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_initialize
-  (JNIEnv *env, jclass jclazz, jobject jinputSet, jint jinputDeviceId,
-      jobject joutputSet, jint joutputDeviceId, jint jblockSize, jfloat jsampleRate) {
+  (JNIEnv *env, jclass jclazz, jarray jinputArray, jint jnumChannelsInput, jint jinputDeviceId,
+      jarray joutputArray, jint jnumChannelsOutput, jint joutputDeviceId,
+      jint jblockSize, jfloat jsampleRate) {
    
   // initialise to known values
   jcaStruct->auhalInput = NULL;
@@ -243,7 +258,7 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_initialize
   AudioComponentInstanceNew(comp, &(jcaStruct->auhalOutput)); // open the component and initialise it (10.6 and later)
 
   // debug
-  if (joutputSet != NULL) {
+  if (joutputArray != NULL) {
     // the output set is non-empty. Configure the AUHAL to be in the graph and provide output
     
     // disable input on the AUHAL
@@ -290,10 +305,14 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_initialize
         0,
         &asbd, &propSize);
     
-    printf("AudioStreamBasicDescription\n  mSampleRate: %g\n  mChannelsPerFrame: %i\n  mBytesPerFrame:%i\n",
-        asbd.mSampleRate, asbd.mChannelsPerFrame, asbd.mBytesPerFrame);
-    
     asbd.mSampleRate = (Float64) jsampleRate; // update the sample rate
+//    asbd.mFormatFlags = asbd.mFormatFlags | kAudioFormatFlagIsNonInterleaved;
+    
+    printf("AudioStreamBasicDescription set to:\n  "
+        "mSampleRate: %g\n  mChannelsPerFrame: %i\n  mBytesPerFrame: %i\n  "
+        "mFormatID: %i\n  mFormatFlags: %i\n",
+        asbd.mSampleRate, asbd.mChannelsPerFrame, asbd.mBytesPerFrame, asbd.mFormatID, asbd.mFormatFlags);
+    
     AudioUnitSetProperty(jcaStruct->auhalOutput,
         kAudioUnitProperty_StreamFormat,
         kAudioUnitScope_Input,
@@ -302,6 +321,29 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_initialize
     
     // now that the AUHAL is set up, initialise it
     AudioUnitInitialize(jcaStruct->auhalOutput);
+
+    // configure channel backing buffers
+    jclass jclazzAudioLet =  (*env)->FindClass(env, "com/synthbot/JCoreAudio/AudioLet");
+    jcaStruct->blockSize = jblockSize;
+    jcaStruct->numChannelsOutput = jnumChannelsOutput;
+    jcaStruct->channelsOutput = (float **) malloc(jnumChannelsOutput * sizeof(char *));
+    for (int i = 0, k = 0; i < (*env)->GetArrayLength(env, joutputArray); i++) {
+      // get the number of channels in this let
+      jobject objAudioLet = (*env)->GetObjectArrayElement(env, joutputArray, i);
+      int numChannels = (*env)->CallIntMethod(env, objAudioLet, (*env)->GetMethodID(env, jclazzAudioLet, "getNumChannels", "()I"));
+      for (int j = 0; j < numChannels; j++, k++) {
+        // create the native backing buffer
+        jcaStruct->channelsOutput[k] = (float *) malloc(jblockSize * sizeof(float));
+        
+        // create a new ByteBuffer
+        jobject jByteBuffer = (*env)->NewDirectByteBuffer(env, jcaStruct->channelsOutput[k], jblockSize*sizeof(float));
+
+        // assign ByteBuffer to channel
+        (*env)->CallVoidMethod(env, objAudioLet,
+            (*env)->GetMethodID(env, jclazzAudioLet, "setChannelBuffer", "(ILjava/nio/ByteBuffer;)V"),
+            j, jByteBuffer);
+      }
+    }
   }
 }
 
@@ -314,12 +356,7 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_play
     (JNIEnv *env, jclass jclazz, jboolean shouldPlay) {
   if (shouldPlay) {
     if (jcaStruct->auhalInput != NULL) AudioOutputUnitStart(jcaStruct->auhalInput);
-    if (jcaStruct->auhalOutput != NULL) {
-      OSStatus err = AudioOutputUnitStart(jcaStruct->auhalOutput);
-      if (err != noErr) {
-        printf("err = %i\n", err);
-      }
-    }
+    if (jcaStruct->auhalOutput != NULL) AudioOutputUnitStart(jcaStruct->auhalOutput);
   } else {
     if (jcaStruct->auhalInput != NULL) AudioOutputUnitStop(jcaStruct->auhalInput);
     if (jcaStruct->auhalOutput != NULL) AudioOutputUnitStop(jcaStruct->auhalOutput);

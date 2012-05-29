@@ -21,13 +21,26 @@
 
 package com.synthbot.JCoreAudio;
 
+import java.nio.FloatBuffer;
 import java.util.Set;
 
 public class CoreAudioAdapter implements CoreAudioListener {
+  
+  private long idx = 0;
 
   @Override
   public void onCoreAudioCallback(Set<AudioLet> inputLets, Set<AudioLet> outputLets) {
-    System.out.println("onCoreAudioCallback");
+    // plays a 440Hz tone
+    
+    AudioLet let = outputLets.iterator().next();
+    for (int i = 0; i < let.numChannels; i++) {
+      FloatBuffer buffer = let.getChannelBuffer(i);
+      buffer.rewind();
+      for (long j = idx; j < 512; j++) { // buffer.getCapacity()
+        buffer.put((float) Math.sin(2.0 * Math.PI * j * 440.0 / 44100.0));
+      }
+    }
+    idx += 512;
   }
 
 }

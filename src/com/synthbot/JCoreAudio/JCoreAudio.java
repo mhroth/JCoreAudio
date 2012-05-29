@@ -115,21 +115,39 @@ public class JCoreAudio {
       throw new IllegalArgumentException("At least one of the input or output sets must be non-empty.");
     }
     
-    currentInputLets = (inputLets == null || inputLets.isEmpty()) ? null : new HashSet<AudioLet>(inputLets); // defensive copy of letset
-    currentOutputLets = (outputLets == null || outputLets.isEmpty()) ? null : new HashSet<AudioLet>(outputLets);
+    int numInputChannels = 0;
+    if (inputLets == null || inputLets.isEmpty()) {
+      currentInputLets = null;
+    } else {
+      // defensive copy of letset
+      currentInputLets = new HashSet<AudioLet>(inputLets);
+      for (AudioLet let : currentInputLets) {
+        numInputChannels += let.numChannels;
+      }
+    }
+    
+    int numOutputChannels = 0;
+    if (outputLets == null || outputLets.isEmpty()) {
+      currentOutputLets = null;
+    } else {
+      currentOutputLets = new HashSet<AudioLet>(outputLets);
+      for (AudioLet let : currentOutputLets) {
+        numOutputChannels += let.numChannels;
+      }
+    }
     currentInputDevice = (inputLets == null) ? null : inputLets.iterator().next().device;
     currentOutputDevice = (outputLets == null) ? null : outputLets.iterator().next().device;
     
-    initialize(inputLets, (currentInputDevice == null) ? 0 : currentInputDevice.getId(),
-        outputLets, (currentOutputDevice == null) ? 0 : currentOutputDevice.getId(),
+    initialize(null, numInputChannels, (currentInputDevice == null) ? 0 : currentInputDevice.getId(),
+        outputLets.toArray(), numOutputChannels, (currentOutputDevice == null) ? 0 : currentOutputDevice.getId(),
         blockSize, sampleRate);
     
     state = CoreAudioState.INITIALIZED;
   }
   
   // it is guaranteed that at least one of the input or output sets is non-empty
-  private static native void initialize(Set<AudioLet> inputLets, int inputAudioDeviceId,
-      Set<AudioLet> outputLets, int outputAudioDeviceId, int blockSize, float sampleRate);
+  private static native void initialize(Object[] inputLetArray, int numChannelsInput, int inputAudioDeviceId,
+      Object[] outputLetArray, int numChannelsOutput, int outputAudioDeviceId, int blockSize, float sampleRate);
   
   /**
    * Ensure that all <code>AudioLet</code>s in the set are from the same device and are all either
@@ -145,6 +163,24 @@ public class JCoreAudio {
     }
     return true;
   }
+  
+  public static synchronized void uninitialize() {
+    switch (state) {
+      case RUNNING: {
+        pause(); // allow fallthrough
+      }
+      case INITIALIZED: {
+        _uninitialize();
+        state = CoreAudioState.UNINITIALIZED;
+        break;
+      }
+      default:
+      case UNINITIALIZED: {
+        // nothing to do
+      }
+    }
+  }
+  private static native void _uninitialize();
   
   public static synchronized AudioDevice getCurrentInputDevice() {
     return currentInputDevice;
@@ -276,6 +312,8 @@ public class JCoreAudio {
       e.printStackTrace(System.err);
     }
     
+    JCoreAudio.pause();
+//    JCoreAudio.uninitialize();
     System.out.println("done.");
   }
   

@@ -26,10 +26,10 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_fillAudioDeviceLi
 /*
  * Class:     com_synthbot_JCoreAudio_JCoreAudio
  * Method:    initialise
- * Signature: (Ljava/util/Set;ILjava/util/Set;IIF)V
+ * Signature: ([Ljava/lang/Object;II[Ljava/lang/Object;IIIIF)V
  */
 JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_initialize
-  (JNIEnv *, jclass, jobject, jint, jobject, jint, jint, jfloat);
+  (JNIEnv *, jclass, jarray, jint, jint, jarray, jint, jint, jint, jfloat);
 
 /*
  * Class:     com_synthbot_JCoreAudio_JCoreAudio

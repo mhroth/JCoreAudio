@@ -21,6 +21,9 @@
 
 package com.synthbot.JCoreAudio;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.FloatBuffer;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -59,12 +62,15 @@ public class AudioLet {
   
   private final Set<AudioFormat> availableFormats;
   
+  private FloatBuffer[] buffers;
+  
   private AudioLet(AudioDevice device, int index, String name, boolean isInput, int numChannels) {
     this.device = device;
     this.index = index;
     this.name = (name == null) ? "" : name;
     this.isInput = isInput;
     this.numChannels = numChannels;
+    buffers = new FloatBuffer[numChannels];
     
     availableFormats = new HashSet<AudioFormat>();
     queryAvailableFormats(device.getId(), index, isInput, availableFormats);
@@ -72,6 +78,28 @@ public class AudioLet {
   
   private static native void queryAvailableFormats(int deviceId, int letIndex, boolean isInput,
       Set<AudioFormat> formats);
+  
+  /**
+   * Indicates the number of channels represented by this let. It is usually one (mono) or two
+   * (stereo), though it may be more. It is never zero.
+   */
+  public int getNumChannels() {
+    return numChannels;
+  }
+  
+  /**
+   * 
+   * @param channelIndex
+   * @return
+   */
+  public FloatBuffer getChannelBuffer(int channelIndex) {
+    return buffers[channelIndex];
+  }
+  
+  private void setChannelBuffer(int channelIndex, ByteBuffer buffer) {
+    // set the endianness of the ByteBuffer, otherwise the samples are not correctly represented
+    buffers[channelIndex] = buffer.order(ByteOrder.nativeOrder()).asFloatBuffer();
+  }
   
   /**
    * Returns a set of <code>AudioFormat</code>s for which this <code>AudioLet</code> can be
