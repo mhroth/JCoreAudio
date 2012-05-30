@@ -9,14 +9,6 @@ extern "C" {
 #endif
 /*
  * Class:     com_synthbot_JCoreAudio_JCoreAudio
- * Method:    fillComponentList
- * Signature: (Ljava/util/List;)V
- */
-JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_fillComponentList
-  (JNIEnv *, jclass, jobject);
-
-/*
- * Class:     com_synthbot_JCoreAudio_JCoreAudio
  * Method:    fillAudioDeviceList
  * Signature: (Ljava/util/List;)V
  */

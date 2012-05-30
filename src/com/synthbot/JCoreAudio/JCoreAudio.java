@@ -62,18 +62,6 @@ public class JCoreAudio {
   static {
     System.loadLibrary("JCoreAudio");
   }
-
-  /**
-   * Returns a <code>List</code> of all audio <code>Component</code>s available on the system.
-   * These may be used to configure which channels should be activated and used as input and outputs.
-   * @return A <code>List</code> of audio <code>Component</code>s.
-   */
-  public static List<Component> getComponentList() {
-    ArrayList<Component> list = new ArrayList<Component>();
-    fillComponentList(list);
-    return list;
-  }
-  private static native void fillComponentList(List<Component> list);
   
   /**
    * Returns a <code>List</code> of available <code>AudioDevice</code>s. The audio system may
@@ -286,13 +274,6 @@ public class JCoreAudio {
   }
   
   public static void main(String[] args) {
-    System.out.println("=== Component List ===");
-    List<Component> componentList = JCoreAudio.getComponentList();
-    for (Component c : componentList) {
-      System.out.println(c.toString());
-    }
-    
-    System.out.println();
     System.out.println("=== Audio Device List ===");
     List<AudioDevice> audioDeviceList = JCoreAudio.getAudioDeviceList();
     for (AudioDevice d : audioDeviceList) {
