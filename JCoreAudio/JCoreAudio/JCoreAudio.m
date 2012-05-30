@@ -306,8 +306,6 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_initialize
         &asbd, &propSize);
     
     asbd.mSampleRate = (Float64) jsampleRate; // update the sample rate
-//    asbd.mFormatFlags = asbd.mFormatFlags | kAudioFormatFlagIsNonInterleaved;
-    
     printf("AudioStreamBasicDescription set to:\n  "
         "mSampleRate: %g\n  mChannelsPerFrame: %i\n  mBytesPerFrame: %i\n  "
         "mFormatID: %i\n  mFormatFlags: %i\n",
@@ -326,14 +324,14 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_initialize
     jclass jclazzAudioLet =  (*env)->FindClass(env, "com/synthbot/JCoreAudio/AudioLet");
     jcaStruct->blockSize = jblockSize;
     jcaStruct->numChannelsOutput = jnumChannelsOutput;
-    jcaStruct->channelsOutput = (float **) malloc(jnumChannelsOutput * sizeof(char *));
+    jcaStruct->channelsOutput = (float **) malloc(jnumChannelsOutput * sizeof(float *));
     for (int i = 0, k = 0; i < (*env)->GetArrayLength(env, joutputArray); i++) {
       // get the number of channels in this let
       jobject objAudioLet = (*env)->GetObjectArrayElement(env, joutputArray, i);
       int numChannels = (*env)->CallIntMethod(env, objAudioLet, (*env)->GetMethodID(env, jclazzAudioLet, "getNumChannels", "()I"));
       for (int j = 0; j < numChannels; j++, k++) {
         // create the native backing buffer
-        jcaStruct->channelsOutput[k] = (float *) malloc(jblockSize * sizeof(float));
+        jcaStruct->channelsOutput[k] = (float *) calloc(jblockSize, sizeof(float));
         
         // create a new ByteBuffer
         jobject jByteBuffer = (*env)->NewDirectByteBuffer(env, jcaStruct->channelsOutput[k], jblockSize*sizeof(float));
