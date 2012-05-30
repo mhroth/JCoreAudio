@@ -146,6 +146,7 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_AudioDevice_queryLetSet
   AudioBufferList buffLetList[numLets];
   AudioDeviceGetProperty(deviceId, 0, isInput, kAudioDevicePropertyStreamConfiguration, &propSize, buffLetList);
   
+  int channelIndex = 0;
   for (int j = 0; j < numLets; j++) {
     AudioDeviceGetPropertyInfo(deviceId, j, isInput, kAudioDevicePropertyChannelName, &propSize, NULL);
     char strADName[++propSize]; memset(strADName, 0, sizeof(strADName));
@@ -153,14 +154,16 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_AudioDevice_queryLetSet
     
     // create a new AudioChannel object
     jobject jAudioLet = (*env)->NewObject(env, jclazzAudioLet,
-        (*env)->GetMethodID(env, jclazzAudioLet, "<init>", "(Lcom/synthbot/JCoreAudio/AudioDevice;ILjava/lang/String;ZI)V"),
-        jobj, j, (*env)->NewStringUTF(env, strADName),
+        (*env)->GetMethodID(env, jclazzAudioLet, "<init>", "(Lcom/synthbot/JCoreAudio/AudioDevice;IILjava/lang/String;ZI)V"),
+        jobj, j, channelIndex, (*env)->NewStringUTF(env, strADName),
         isInput, buffLetList[j].mBuffers[0].mNumberChannels);
     
     // add the AudioChannel to the inputSet
     (*env)->CallVoidMethod(env, jset,
         (*env)->GetMethodID(env, jclazzHashSet, "add", "(Ljava/lang/Object;)Z"),
         jAudioLet);
+    
+    channelIndex += buffLetList[j].mBuffers[0].mNumberChannels;
   }
 }
 
@@ -216,7 +219,6 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_initialize
   }
   AudioComponentInstanceNew(comp, &(jcaStruct->auhalOutput)); // open the component and initialise it (10.6 and later)
 
-  // debug
   if (joutputArray != NULL) {
     // the output set is non-empty. Configure the AUHAL to be in the graph and provide output
     
@@ -243,7 +245,38 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_initialize
         0, 
         &joutputDeviceId, sizeof(AudioDeviceID));
 
-    // TODO(mhroth): configure channel map
+    // configure channel map and channel backing buffers
+    SInt32 channelMap[jnumChannelsOutput];
+    jclass jclazzAudioLet =  (*env)->FindClass(env, "com/synthbot/JCoreAudio/AudioLet");
+    jcaStruct->blockSize = jblockSize;
+    jcaStruct->numChannelsOutput = jnumChannelsOutput;
+    jcaStruct->channelsOutput = (float **) malloc(jnumChannelsOutput * sizeof(float *));
+    for (int i = 0, k = 0; i < (*env)->GetArrayLength(env, joutputArray); i++) {
+      // get the number of channels in this let
+      jobject objAudioLet = (*env)->GetObjectArrayElement(env, joutputArray, i);
+      int numChannels = (*env)->CallIntMethod(env, objAudioLet, (*env)->GetMethodID(env, jclazzAudioLet, "getNumChannels", "()I"));
+      int channelIndex = (*env)->CallIntMethod(env, objAudioLet, (*env)->GetMethodID(env, jclazzAudioLet, "getChannelIndex", "()I"));
+      for (int j = 0; j < numChannels; j++, k++, channelIndex++) {
+        // create the native backing buffer
+        jcaStruct->channelsOutput[k] = (float *) calloc(jblockSize, sizeof(float));
+        
+        // create a new ByteBuffer
+        jobject jByteBuffer = (*env)->NewDirectByteBuffer(env, jcaStruct->channelsOutput[k], jblockSize*sizeof(float));
+        
+        // assign ByteBuffer to channel
+        (*env)->CallVoidMethod(env, objAudioLet,
+            (*env)->GetMethodID(env, jclazzAudioLet, "setChannelBuffer", "(ILjava/nio/ByteBuffer;)V"),
+            j, jByteBuffer);
+        
+        channelMap[k] = channelIndex;
+      }
+    }
+    
+    // set the channel map
+    AudioUnitSetProperty(jcaStruct->auhalOutput,
+        kAudioOutputUnitProperty_ChannelMap,
+        kAudioUnitScope_Input, 0,
+        channelMap, jnumChannelsOutput);
     
     // register audio callback
     AURenderCallbackStruct renderCallbackStruct;
@@ -278,29 +311,6 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_initialize
     
     // now that the AUHAL is set up, initialise it
     AudioUnitInitialize(jcaStruct->auhalOutput);
-
-    // configure channel backing buffers
-    jclass jclazzAudioLet =  (*env)->FindClass(env, "com/synthbot/JCoreAudio/AudioLet");
-    jcaStruct->blockSize = jblockSize;
-    jcaStruct->numChannelsOutput = jnumChannelsOutput;
-    jcaStruct->channelsOutput = (float **) malloc(jnumChannelsOutput * sizeof(float *));
-    for (int i = 0, k = 0; i < (*env)->GetArrayLength(env, joutputArray); i++) {
-      // get the number of channels in this let
-      jobject objAudioLet = (*env)->GetObjectArrayElement(env, joutputArray, i);
-      int numChannels = (*env)->CallIntMethod(env, objAudioLet, (*env)->GetMethodID(env, jclazzAudioLet, "getNumChannels", "()I"));
-      for (int j = 0; j < numChannels; j++, k++) {
-        // create the native backing buffer
-        jcaStruct->channelsOutput[k] = (float *) calloc(jblockSize, sizeof(float));
-        
-        // create a new ByteBuffer
-        jobject jByteBuffer = (*env)->NewDirectByteBuffer(env, jcaStruct->channelsOutput[k], jblockSize*sizeof(float));
-
-        // assign ByteBuffer to channel
-        (*env)->CallVoidMethod(env, objAudioLet,
-            (*env)->GetMethodID(env, jclazzAudioLet, "setChannelBuffer", "(ILjava/nio/ByteBuffer;)V"),
-            j, jByteBuffer);
-      }
-    }
   }
 }
 

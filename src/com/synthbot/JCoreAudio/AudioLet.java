@@ -45,6 +45,11 @@ public class AudioLet {
   private final int index;
   
   /**
+   * The index of the first channel in this let. Used for configuring the channel map.
+   */
+  private final int channelIndex;
+  
+  /**
    * The name of this let. It may be that the let has no name, in which case an empty
    * <code>String</code> is returned.
    */
@@ -64,9 +69,10 @@ public class AudioLet {
   
   private FloatBuffer[] buffers;
   
-  private AudioLet(AudioDevice device, int index, String name, boolean isInput, int numChannels) {
+  private AudioLet(AudioDevice device, int index, int channelIndex, String name, boolean isInput, int numChannels) {
     this.device = device;
     this.index = index;
+    this.channelIndex = channelIndex;
     this.name = (name == null) ? "" : name;
     this.isInput = isInput;
     this.numChannels = numChannels;
@@ -99,6 +105,10 @@ public class AudioLet {
   private void setChannelBuffer(int channelIndex, ByteBuffer buffer) {
     // set the endianness of the ByteBuffer, otherwise the samples are not correctly represented
     buffers[channelIndex] = buffer.order(ByteOrder.nativeOrder()).asFloatBuffer();
+  }
+  
+  private int getChannelIndex() {
+    return channelIndex;
   }
   
   /**
