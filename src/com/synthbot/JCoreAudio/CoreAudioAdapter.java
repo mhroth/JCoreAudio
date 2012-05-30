@@ -31,12 +31,12 @@ public class CoreAudioAdapter implements CoreAudioListener {
   @Override
   public void onCoreAudioCallback(Set<AudioLet> inputLets, Set<AudioLet> outputLets) {
     // plays a 440Hz tone
-    
     AudioLet let = outputLets.iterator().next();
     for (int i = 0; i < let.numChannels; i++) {
       FloatBuffer buffer = let.getChannelBuffer(i);
       buffer.rewind();
-      for (long j = idx; j < 512; j++) { // buffer.getCapacity()
+      long toIdx = idx + 512;
+      for (long j = idx; j < toIdx; j++) { // buffer.getCapacity()
         buffer.put((float) Math.sin(2.0 * Math.PI * j * 440.0 / 44100.0));
       }
     }
