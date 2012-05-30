@@ -86,7 +86,7 @@ public class JCoreAudio {
   /**
    * 
    * @param inputLets  A Set of AudioLets to use as input. May be <code>null</code> or an empty set.
-   * @param outputLets    A Set of AudioLets to use as output. May be <code>null</code> or an empty set.
+   * @param outputLets  A Set of AudioLets to use as output. May be <code>null</code> or an empty set.
    */
   public static synchronized void initialize(Set<AudioLet> inputLets, Set<AudioLet> outputLets,
       int blockSize, float sampleRate) {
@@ -94,10 +94,10 @@ public class JCoreAudio {
       throw new IllegalStateException();
     }
     if (!verifyLetSet(inputLets)) {
-      throw new IllegalArgumentException();
+      throw new IllegalArgumentException("The input AudioLet set does not contain lets from only one AudioDevice.");
     }
     if (!verifyLetSet(outputLets)) {
-      throw new IllegalArgumentException();
+      throw new IllegalArgumentException("The output AudioLet set does not contain lets from only one AudioDevice.");
     }
     if ((inputLets == null || inputLets.isEmpty()) && (outputLets == null || outputLets.isEmpty())) {
       throw new IllegalArgumentException("At least one of the input or output sets must be non-empty.");
@@ -106,7 +106,19 @@ public class JCoreAudio {
     int numInputChannels = 0;
     if (inputLets == null || inputLets.isEmpty()) {
       currentInputLets = null;
+      currentInputDevice = null;
     } else {
+      AudioDevice device = inputLets.iterator().next().device;
+      if (blockSize < device.getMinimumBufferSize()) {
+        throw new IllegalArgumentException("The given blocksize is less than the minimum supported amount: " +
+            blockSize +  " < " + device.getMinimumBufferSize());
+      }
+      if (blockSize > device.getMaximumBufferSize()) {
+        throw new IllegalArgumentException("The given blocksize is greater than the maximum supported amount: " +
+            blockSize +  " < " + device.getMaximumBufferSize());
+      }
+      currentInputDevice = device;
+      
       // defensive copy of letset
       currentInputLets = new HashSet<AudioLet>(inputLets);
       for (AudioLet let : currentInputLets) {
@@ -117,15 +129,24 @@ public class JCoreAudio {
     int numOutputChannels = 0;
     if (outputLets == null || outputLets.isEmpty()) {
       currentOutputLets = null;
+      currentOutputDevice = null;
     } else {
+      AudioDevice device = outputLets.iterator().next().device;
+      if (blockSize < device.getMinimumBufferSize()) {
+        throw new IllegalArgumentException("The given blocksize is less than the minimum supported amount: " +
+            blockSize +  " < " + device.getMinimumBufferSize());
+      }
+      if (blockSize > device.getMaximumBufferSize()) {
+        throw new IllegalArgumentException("The given blocksize is greater than the maximum supported amount: " +
+            blockSize +  " < " + device.getMaximumBufferSize());
+      }
+      currentOutputDevice = device;
+      
       currentOutputLets = new HashSet<AudioLet>(outputLets);
       for (AudioLet let : currentOutputLets) {
         numOutputChannels += let.numChannels;
       }
     }
-    currentInputDevice = (inputLets == null) ? null : inputLets.iterator().next().device;
-    currentOutputDevice = (outputLets == null) ? null : outputLets.iterator().next().device;
-    
     initialize(null, numInputChannels, (currentInputDevice == null) ? 0 : currentInputDevice.getId(),
         outputLets.toArray(), numOutputChannels, (currentOutputDevice == null) ? 0 : currentOutputDevice.getId(),
         blockSize, sampleRate);
@@ -283,7 +304,7 @@ public class JCoreAudio {
     JCoreAudio.addListener(new CoreAudioAdapter());
     
     Set<AudioLet> outputSet = audioDeviceList.get(2).getOutputSet();
-    
+
     JCoreAudio.initialize(outputSet, 512, 44100.0f);
     JCoreAudio.play();
     
@@ -309,9 +330,15 @@ public class JCoreAudio {
   
   // ------ CoreAudioListener Callbacks ------
   
-  private static void fireOnCoreAudioCallback() {
+  private static void fireOnCoreAudioInput() {
     for (CoreAudioListener listener : listeners) {
-      listener.onCoreAudioCallback(currentInputLets, currentOutputLets);
+      listener.onCoreAudioInput(currentInputLets);
+    }
+  }
+  
+  private static void fireOnCoreAudioOutput() {
+    for (CoreAudioListener listener : listeners) {
+      listener.onCoreAudioOutput(currentOutputLets);
     }
   }
 

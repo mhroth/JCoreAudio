@@ -85,20 +85,12 @@ public class AudioDevice {
   }
   
   /**
-   * Returns the preferred buffer size of this device.
-   */
-  public int getPreferredBufferSize() {
-    return getPreferredBufferSize(id);
-  }
-  private native int getPreferredBufferSize(int id);
-  
-  /**
    * Returns the minimum buffer size of this device.
    */
   public int getMinimumBufferSize() {
     return getMinimumBufferSize(id);
   }
-  private native int getMinimumBufferSize(int id);
+  private native int getMinimumBufferSize(int audioDeviceId);
   
   /**
    * Returns the maximum buffer size of this device.
@@ -106,7 +98,7 @@ public class AudioDevice {
   public int getMaximumBufferSize() {
     return getMaximumBufferSize(id);
   }
-  private native int getMaximumBufferSize(int id);
+  private native int getMaximumBufferSize(int audioDeviceid);
   
   /**
    * For debug only.

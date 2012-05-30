@@ -24,12 +24,17 @@ package com.synthbot.JCoreAudio;
 import java.util.Set;
 
 public interface CoreAudioListener {
+   
+  /**
+   * 
+   * @param inputLets  The set of input AudioLets with which Core Audio was initialized.
+   */
+  public void onCoreAudioInput(Set<AudioLet> inputLets);
   
   /**
    * 
-   * @param inputLets
-   * @param outputLets
+   * @param outputLets  The set of output AudioLets with which Core Audio was initialized.
    */
-  public void onCoreAudioCallback(Set<AudioLet> inputLets, Set<AudioLet> outputLets);
+  public void onCoreAudioOutput(Set<AudioLet> outputLets);
 
 }

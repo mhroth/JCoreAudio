@@ -27,20 +27,27 @@ import java.util.Set;
 public class CoreAudioAdapter implements CoreAudioListener {
   
   private long idx = 0;
+  
+  @Override
+  public void onCoreAudioInput(Set<AudioLet> inputLets) {
+    // nothing to do
+  }
 
   @Override
-  public void onCoreAudioCallback(Set<AudioLet> inputLets, Set<AudioLet> outputLets) {
+  public void onCoreAudioOutput(Set<AudioLet> outputLets) {
     // plays a 440Hz tone
+    int blockSize = 0;
     AudioLet let = outputLets.iterator().next();
     for (int i = 0; i < let.numChannels; i++) {
       FloatBuffer buffer = let.getChannelBuffer(i);
       buffer.rewind();
-      long toIdx = idx + 512;
+      blockSize = buffer.capacity();
+      long toIdx = idx + blockSize;
       for (long j = idx; j < toIdx; j++) { // buffer.getCapacity()
         buffer.put((float) Math.sin(2.0 * Math.PI * j * 440.0 / 44100.0));
       }
     }
-    idx += 512;
+    idx += blockSize;
   }
 
 }

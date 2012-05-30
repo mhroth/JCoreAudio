@@ -15,6 +15,22 @@ extern "C" {
 JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_AudioDevice_queryLetSet
   (JNIEnv *, jclass, jobject, jint, jboolean, jobject);
 
+/*
+ * Class:     com_synthbot_JCoreAudio_AudioDevice
+ * Method:    getMinimumBufferSize
+ * Signature: (I)I
+ */
+JNIEXPORT jint JNICALL Java_com_synthbot_JCoreAudio_AudioDevice_getMinimumBufferSize
+  (JNIEnv *, jobject, jint);
+
+/*
+ * Class:     com_synthbot_JCoreAudio_AudioDevice
+ * Method:    getMaximumBufferSize
+ * Signature: (I)I
+ */
+JNIEXPORT jint JNICALL Java_com_synthbot_JCoreAudio_AudioDevice_getMaximumBufferSize
+  (JNIEnv *, jobject, jint);
+
 #ifdef __cplusplus
 }
 #endif
