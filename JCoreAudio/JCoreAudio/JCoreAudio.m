@@ -59,9 +59,9 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved) {
   
   JCA_jclazzJCoreAudio = (*env)->FindClass(env, "com/synthbot/JCoreAudio/JCoreAudio");
   JCA_fireOnCoreAudioInputMid = (*env)->GetStaticMethodID(env, JCA_jclazzJCoreAudio,
-      "fireOnCoreAudioInput", "()V");
+      "fireOnCoreAudioInput", "(D)V");
   JCA_fireOnCoreAudioOutputMid = (*env)->GetStaticMethodID(env, JCA_jclazzJCoreAudio,
-      "fireOnCoreAudioOutput", "()V");
+      "fireOnCoreAudioOutput", "(D)V");
   
   return JNI_VERSION_1_4;
 }
@@ -82,7 +82,7 @@ OSStatus outputRenderCallback(void *inRefCon, AudioUnitRenderActionFlags *ioActi
     // make audio callback to Java and fill the byte buffers
     JCoreAudioStruct *jca = (JCoreAudioStruct *) inRefCon; 
     if (jclassJCA == 0) jclassJCA = (*env)->FindClass(env, "com/synthbot/JCoreAudio/JCoreAudio");
-    (*env)->CallStaticVoidMethod(env, jclassJCA, JCA_fireOnCoreAudioOutputMid);
+    (*env)->CallStaticVoidMethod(env, jclassJCA, JCA_fireOnCoreAudioOutputMid, inTimeStamp->mSampleTime);
     
     // interleave the channels to the backing buffers
     // TODO(mhroth): vectorise this like a real man, ok?

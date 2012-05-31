@@ -56,7 +56,7 @@ public class JCoreAudio {
   /**
    * 
    */
-  private static final Set<CoreAudioListener> listeners = new HashSet<CoreAudioListener>();
+  private static CoreAudioListener listener;
  
   
   static {
@@ -294,6 +294,10 @@ public class JCoreAudio {
     state = newState;
   }
   
+  public static synchronized void setListener(CoreAudioListener listener) {
+    JCoreAudio.listener = listener;
+  }
+  
   public static void main(String[] args) {
     System.out.println("=== Audio Device List ===");
     List<AudioDevice> audioDeviceList = JCoreAudio.getAudioDeviceList();
@@ -301,7 +305,7 @@ public class JCoreAudio {
       System.out.println(d.toString());
     }
     
-    JCoreAudio.addListener(new CoreAudioAdapter());
+    JCoreAudio.setListener(new CoreAudioAdapter());
     
     Set<AudioLet> outputSet = audioDeviceList.get(2).getOutputSet();
 
@@ -319,27 +323,15 @@ public class JCoreAudio {
     System.out.println("done.");
   }
   
-  public static synchronized void addListener(CoreAudioListener listener) {
-    listeners.add(listener);
-  }
-  
-  public static synchronized void removeListener(CoreAudioListener listener) {
-    listeners.remove(listener);
-  }
-  
   
   // ------ CoreAudioListener Callbacks ------
   
-  private static void fireOnCoreAudioInput() {
-    for (CoreAudioListener listener : listeners) {
-      listener.onCoreAudioInput(currentInputLets);
-    }
+  private static void fireOnCoreAudioInput(double timestamp) {
+    listener.onCoreAudioInput(timestamp, currentInputLets);
   }
   
-  private static void fireOnCoreAudioOutput() {
-    for (CoreAudioListener listener : listeners) {
-      listener.onCoreAudioOutput(currentOutputLets);
-    }
+  private static void fireOnCoreAudioOutput(double timestamp) {
+    listener.onCoreAudioOutput(timestamp, currentOutputLets);
   }
 
 }

@@ -29,12 +29,12 @@ public class CoreAudioAdapter implements CoreAudioListener {
   private long idx = 0;
   
   @Override
-  public void onCoreAudioInput(Set<AudioLet> inputLets) {
+  public void onCoreAudioInput(double timestamp, Set<AudioLet> inputLets) {
     // nothing to do
   }
 
   @Override
-  public void onCoreAudioOutput(Set<AudioLet> outputLets) {
+  public void onCoreAudioOutput(double timestamp, Set<AudioLet> outputLets) {
     // plays a 440Hz tone
     int blockSize = 0;
     AudioLet let = outputLets.iterator().next();
