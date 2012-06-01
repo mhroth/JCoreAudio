@@ -176,10 +176,10 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_AudioDevice_queryLetSet
   }
 }
 
-JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_AudioLet_queryAvailableFormats
+JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_AudioLet_queryAvailableSamplerates
     (JNIEnv *env, jclass jclazz, jint deviceId, jint letIndex, jboolean isInput, jobject jset) {
   
-  jclass jclazzAudioFormat = (*env)->FindClass(env, "com/synthbot/JCoreAudio/AudioFormat");
+  jclass jclazzFloat = (*env)->FindClass(env, "java/lang/Float");
   jclass jclazzHashSet = (*env)->FindClass(env, "java/util/HashSet");
       
   UInt32 propSize = 0;
@@ -193,15 +193,15 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_AudioLet_queryAvailableForma
   for (int i = 0; i < numFormats; i++) {
     AudioStreamBasicDescription asbd = formats[i];
     
-    // create a new AudioFormat object
-    jobject jAudioFormat = (*env)->NewObject(env, jclazzAudioFormat,
-        (*env)->GetMethodID(env, jclazzAudioFormat, "<init>", "(II)V"),
-        (jint) asbd.mSampleRate, (jint) asbd.mBitsPerChannel);
+    // create a new Float object
+    jobject jFloat = (*env)->NewObject(env, jclazzFloat,
+        (*env)->GetMethodID(env, jclazzFloat, "<init>", "(F)V"),
+        (jfloat) asbd.mSampleRate);
     
     // add the AudioFormat object to the given Set
     (*env)->CallVoidMethod(env, jset,
         (*env)->GetMethodID(env, jclazzHashSet, "add", "(Ljava/lang/Object;)Z"),
-        jAudioFormat);
+        jFloat);
   }
 }
 
@@ -217,14 +217,25 @@ JNIEXPORT jint JNICALL Java_com_synthbot_JCoreAudio_AudioDevice_getMinimumBuffer
 }
 
 JNIEXPORT jint JNICALL Java_com_synthbot_JCoreAudio_AudioDevice_getMaximumBufferSize
-(JNIEnv *env, jobject jobj, jint jaudioDeviceId) {
-  
+    (JNIEnv *env, jobject jobj, jint jaudioDeviceId) {
+      
   AudioValueRange range;
   UInt32 propSize = sizeof(AudioValueRange);
   AudioDeviceGetProperty(jaudioDeviceId, 0, false,
       kAudioDevicePropertyBufferFrameSizeRange, &propSize, &range);
-  
+
   return (jint) range.mMaximum;
+}
+
+JNIEXPORT jfloat JNICALL Java_com_synthbot_JCoreAudio_AudioDevice_getSampleRate
+    (JNIEnv *env, jobject jobj, jint jaudioDeviceId) {
+  
+  Float64 sampleRate = 0.0;
+  UInt32 propSize = sizeof(Float64);
+  AudioDeviceGetProperty(jaudioDeviceId, 0, false,
+      kAudioDevicePropertyNominalSampleRate, &propSize, &sampleRate);
+
+  return (jfloat) sampleRate;
 }
 
 // file:///Users/mhroth/Library/Developer/Shared/Documentation/DocSets/com.apple.adc.documentation.AppleLion.CoreReference.docset/Contents/Resources/Documents/index.html#technotes/tn2091/_index.html
@@ -251,6 +262,11 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_initialize
     // TODO(mhroth): Throw an Exception. Something has gone terribly wrong.
   }
   AudioComponentInstanceNew(comp, &(jcaStruct->auhalOutput)); // open the component and initialise it (10.6 and later)
+    
+  // http://osdir.com/ml/coreaudio-api/2009-10/msg01790.html
+  // Ttell the AudioDevice to use its own runloop. This allows it to react autonomously to
+  // sample rate changes.
+  AudioHardwareSetProperty(kAudioHardwarePropertyRunLoop, sizeof(CFRunLoopRef), NULL);
 
   if (joutputArray != NULL) {
     // the output set is non-empty. Configure the AUHAL to be in the graph and provide output
@@ -317,7 +333,7 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_initialize
         kAudioUnitScope_Global, 0,
         &renderCallbackStruct, sizeof(AURenderCallbackStruct));
     
-    // configure output device to given sample
+    // configure output device to given sample rate
     AudioStreamBasicDescription asbd;
     UInt32 propSize = sizeof(AudioStreamBasicDescription);
     AudioUnitGetProperty (jcaStruct->auhalOutput,
@@ -330,6 +346,11 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_initialize
         kAudioUnitScope_Input, 0,
         &asbd, sizeof(AudioStreamBasicDescription));
     
+    // set the device sample rate
+    Float64 sampleRate = (Float64) jsampleRate;
+    AudioDeviceSetProperty(joutputDeviceId, NULL, 0, false,
+        kAudioDevicePropertyNominalSampleRate, sizeof(Float64), &sampleRate);
+
     // set requested block size
     AudioUnitSetProperty(jcaStruct->auhalOutput,
         kAudioDevicePropertyBufferFrameSize,

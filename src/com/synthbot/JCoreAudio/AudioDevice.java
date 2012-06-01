@@ -84,6 +84,11 @@ public class AudioDevice {
     return new HashSet<AudioLet>(outputLetSet);
   }
   
+  public int getCurrentBufferSize() {
+    return getCurrentBufferSize(id);
+  }
+  private native static int getCurrentBufferSize(int id);
+  
   /**
    * Returns the minimum buffer size of this device.
    */
@@ -101,21 +106,16 @@ public class AudioDevice {
   private native int getMaximumBufferSize(int audioDeviceid);
   
   /**
-   * For debug only.
+   * Returns the current sample rate of this <code>AudioDevice</code>. This can be changed manually
+   * by using the OS X Audio MIDI Setup application.
    */
-  @Deprecated
-  public void printChannels() {
-    for (AudioLet c : inputLetSet) {
-      System.out.println(c.toString());
-    }
-    for (AudioLet c : outputLetSet) {
-      System.out.println(c.toString());
-    }
+  public float getCurrentSampleRate() {
+    return getSampleRate(id);
   }
+  private static native float getSampleRate(int id);
   
   @Override
   public String toString() {
-    printChannels();
     return "Audio Device " + id + ": " + name + " by " + manufacturer + ".";
   }
   

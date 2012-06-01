@@ -30,6 +30,14 @@ JNIEXPORT jint JNICALL Java_com_synthbot_JCoreAudio_AudioDevice_getMinimumBuffer
  */
 JNIEXPORT jint JNICALL Java_com_synthbot_JCoreAudio_AudioDevice_getMaximumBufferSize
   (JNIEnv *, jobject, jint);
+  
+/*
+ * Class:     com_synthbot_JCoreAudio_AudioDevice
+ * Method:    getSampleRate
+ * Signature: (I)F
+ */
+JNIEXPORT jfloat JNICALL Java_com_synthbot_JCoreAudio_AudioDevice_getSampleRate
+(JNIEnv *, jobject, jint);
 
 #ifdef __cplusplus
 }

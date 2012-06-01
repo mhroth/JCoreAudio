@@ -76,17 +76,31 @@ public class JCoreAudio {
   private static native void fillAudioDeviceList(List<AudioDevice> list);
   
   /**
-   * A convenience method for initialising only the output. Sometimes you just have something to say
-   * and don't want to listen.
+   * A convenience method for initializing Core Audio with default block size and sample rate.
+   * Sample rate can be manually changed using the OS X Audio MIDI Setup application.
    */
-  public static synchronized void initialize(Set<AudioLet> outputLets, int blockSize, float sampleRate) {
-    initialize(null, outputLets, blockSize, sampleRate);
+  public static synchronized void initialize(Set<AudioLet> inputLets, Set<AudioLet> outputLets) {
+    int defaultBlockSize = 512; // NOTE(mhroth): default for now
+    float defaultSampleRate = 0.0f;
+    if (inputLets != null && !inputLets.isEmpty()) {
+      defaultSampleRate = inputLets.iterator().next().getAudioDevice().getCurrentSampleRate();
+    } else if (outputLets != null && !outputLets.isEmpty()) {
+      defaultSampleRate = outputLets.iterator().next().getAudioDevice().getCurrentSampleRate();
+    }
+    
+    initialize(inputLets, outputLets, defaultBlockSize, defaultSampleRate);
   }
   
   /**
    * 
    * @param inputLets  A Set of AudioLets to use as input. May be <code>null</code> or an empty set.
    * @param outputLets  A Set of AudioLets to use as output. May be <code>null</code> or an empty set.
+   * @param blockSize  The requested block size. It must be between the limits allowed by
+   *     <code>AudioDevice.getMinimumBlockSize()</code> and <code>AudioDevice.getMaximumBlockSize()</code>.
+   *     When in doubt, use <code>AudioDevice.getCurrentBufferSize()</code>.
+   * @param sampleRate  The requested sample rate. It must be one of the sample rates allowed by
+   *     <code>AudioDevice.getAllowedSampleRates()</code>. When in doubt, use
+   *     <code>AudioDevice.getCurrentSampleRate()</code>.
    */
   public static synchronized void initialize(Set<AudioLet> inputLets, Set<AudioLet> outputLets,
       int blockSize, float sampleRate) {
@@ -117,6 +131,12 @@ public class JCoreAudio {
         throw new IllegalArgumentException("The given blocksize is greater than the maximum supported amount: " +
             blockSize +  " < " + device.getMaximumBufferSize());
       }
+      for (AudioLet let : inputLets) {
+        if (!let.canSamplerate(sampleRate)) {
+          throw new IllegalArgumentException("The requested sample rate " + sampleRate + "Hz is not supported. " +
+          		"It must be one of " + let.getAvailableSamplerates().toString() + "Hz.");
+        }
+      }
       currentInputDevice = device;
       
       // defensive copy of letset
@@ -139,6 +159,12 @@ public class JCoreAudio {
       if (blockSize > device.getMaximumBufferSize()) {
         throw new IllegalArgumentException("The given blocksize is greater than the maximum supported amount: " +
             blockSize +  " < " + device.getMaximumBufferSize());
+      }
+      for (AudioLet let : outputLets) {
+        if (!let.canSamplerate(sampleRate)) {
+          throw new IllegalArgumentException("The requested sample rate " + sampleRate + "Hz is not supported. " +
+              "It must be one of: " + let.getAvailableSamplerates().toString());
+        }
       }
       currentOutputDevice = device;
       
@@ -309,7 +335,7 @@ public class JCoreAudio {
     
     Set<AudioLet> outputSet = audioDeviceList.get(2).getOutputSet();
 
-    JCoreAudio.initialize(outputSet, 512, 44100.0f);
+    JCoreAudio.initialize(null, outputSet, 512, 44100.0f);
     JCoreAudio.play();
     
     try {

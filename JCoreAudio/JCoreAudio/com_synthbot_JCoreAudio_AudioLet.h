@@ -12,7 +12,7 @@ extern "C" {
  * Method:    queryAvailableFormats
  * Signature: (IIZLjava/util/Set;)V
  */
-JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_AudioLet_queryAvailableFormats
+JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_AudioLet_queryAvailableSamplerates
   (JNIEnv *, jclass, jint, jint, jboolean, jobject);
 
 #ifdef __cplusplus

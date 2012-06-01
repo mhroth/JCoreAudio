@@ -65,7 +65,7 @@ public class AudioLet {
    */
   public final int numChannels;
   
-  private final Set<AudioFormat> availableFormats;
+  private final Set<Float> availableSamplerates;
   
   private FloatBuffer[] buffers;
   
@@ -78,12 +78,24 @@ public class AudioLet {
     this.numChannels = numChannels;
     buffers = new FloatBuffer[numChannels];
     
-    availableFormats = new HashSet<AudioFormat>();
-    queryAvailableFormats(device.getId(), index, isInput, availableFormats);
+    availableSamplerates = new HashSet<Float>();
+    queryAvailableSamplerates(device.getId(), index, isInput, availableSamplerates);
   }
   
-  private static native void queryAvailableFormats(int deviceId, int letIndex, boolean isInput,
-      Set<AudioFormat> formats);
+  private static native void queryAvailableSamplerates(int deviceId, int letIndex, boolean isInput,
+      Set<Float> formats);
+  
+  public String getName() {
+    return name;
+  }
+  
+  public boolean isInput() {
+    return isInput;
+  }
+  
+  public AudioDevice getAudioDevice() {
+    return device;
+  }
   
   /**
    * Indicates the number of channels represented by this let. It is usually one (mono) or two
@@ -93,11 +105,6 @@ public class AudioLet {
     return numChannels;
   }
   
-  /**
-   * 
-   * @param channelIndex
-   * @return
-   */
   public FloatBuffer getChannelBuffer(int channelIndex) {
     return buffers[channelIndex];
   }
@@ -111,12 +118,16 @@ public class AudioLet {
     return channelIndex;
   }
   
+  public Set<Float> getAvailableSamplerates() {
+    return new HashSet<Float>(availableSamplerates);
+  }
+  
   /**
-   * Returns a set of <code>AudioFormat</code>s for which this <code>AudioLet</code> can be
-   * configured.
+   * Returns <code>true</code> if the <code>AudioDevice</code> supportes the given sample rate.
+   * Otherwise <code>false</code>.
    */
-  public Set<AudioFormat> getAvailableFomats() {
-    return new HashSet<AudioFormat>(availableFormats);
+  public boolean canSamplerate(float samplerate) {
+    return availableSamplerates.contains(new Float(samplerate)); 
   }
 
   @Override
