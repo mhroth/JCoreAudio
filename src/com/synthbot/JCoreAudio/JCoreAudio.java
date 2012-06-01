@@ -173,8 +173,10 @@ public class JCoreAudio {
         numOutputChannels += let.numChannels;
       }
     }
-    initialize(null, numInputChannels, (currentInputDevice == null) ? 0 : currentInputDevice.getId(),
-        outputLets.toArray(), numOutputChannels, (currentOutputDevice == null) ? 0 : currentOutputDevice.getId(),
+    initialize((currentInputLets == null) ? null : currentInputLets.toArray(), numInputChannels,
+        (currentInputDevice == null) ? 0 : currentInputDevice.getId(),
+        (currentOutputLets == null) ? null : currentOutputLets.toArray(), numOutputChannels,
+        (currentOutputDevice == null) ? 0 : currentOutputDevice.getId(),
         blockSize, sampleRate);
     
     state = CoreAudioState.INITIALIZED;
@@ -333,9 +335,10 @@ public class JCoreAudio {
     
     JCoreAudio.setListener(new CoreAudioAdapter());
     
+    Set<AudioLet> inputSet = audioDeviceList.get(0).getInputSet();
     Set<AudioLet> outputSet = audioDeviceList.get(2).getOutputSet();
 
-    JCoreAudio.initialize(null, outputSet, 512, 44100.0f);
+    JCoreAudio.initialize(inputSet, outputSet, 512, 44100.0f);
     JCoreAudio.play();
     
     try {

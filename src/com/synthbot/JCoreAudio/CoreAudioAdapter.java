@@ -49,5 +49,4 @@ public class CoreAudioAdapter implements CoreAudioListener {
     }
     idx += blockSize;
   }
-  
 }

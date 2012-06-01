@@ -70,6 +70,44 @@ void JNI_OnUnload(JavaVM *vm, void *reserved) {
   free(jcaStruct);
 }
 
+OSStatus inputRenderCallback(void *inRefCon, AudioUnitRenderActionFlags *ioActionFlags,
+    const AudioTimeStamp *inTimeStamp, UInt32 inBusNumber, UInt32 inNumberFrames, AudioBufferList *ioData) {
+  static jclass jclassJCA = 0;
+  
+  JNIEnv *env = nil;
+  jint res = (*JCoreAudio_globalJvm)->AttachCurrentThreadAsDaemon(JCoreAudio_globalJvm, (void **) &env, NULL);
+  if (res == JNI_OK) {
+    JCoreAudioStruct *jca = (JCoreAudioStruct *) inRefCon;
+    
+    AudioBufferList bufferList;
+    bufferList.mNumberBuffers = 1;
+    AudioBuffer audioBuffer;
+    audioBuffer.mNumberChannels = jca->numChannelsInput;
+    audioBuffer.mDataByteSize = jca->blockSize * jca->numChannelsInput * sizeof(float);
+    float caBuffer[jca->blockSize * jca->numChannelsInput];
+    audioBuffer.mData = caBuffer;
+    bufferList.mBuffers[0] = audioBuffer;
+ 
+    // render the input into the buffers
+    AudioUnitRender(jca->auhalInput, ioActionFlags, inTimeStamp, inBusNumber,
+        inNumberFrames, &bufferList);
+    
+    // interleave the channels to the backing buffers
+    // TODO(mhroth): vectorise this like a real man, ok?
+    for (int i = 0; i < jca->numChannelsInput; i++) {
+      for (int j = 0, k = i; j < jca->blockSize; j++, k+=jca->numChannelsInput) {
+        jca->channelsInput[i][j] = caBuffer[k];
+      }
+    }
+
+    // make audio callback to Java and fill the byte buffers
+    if (jclassJCA == 0) jclassJCA = (*env)->FindClass(env, "com/synthbot/JCoreAudio/JCoreAudio");
+    (*env)->CallStaticVoidMethod(env, jclassJCA, JCA_fireOnCoreAudioInputMid, inTimeStamp->mSampleTime);
+  }
+  
+  return noErr; // everything is gonna be ok
+}
+
 // render callback for output AUHAL
 // gets output audio from Java and sends it to the output hardware device
 OSStatus outputRenderCallback(void *inRefCon, AudioUnitRenderActionFlags *ioActionFlags,
@@ -248,7 +286,7 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_initialize
   jcaStruct->auhalInput = NULL;
   jcaStruct->auhalOutput = NULL;
   OSStatus err = noErr;
-  
+    
   // create an AUHAL (for 10.6 and later)
   AudioComponent comp; // find AUHAL component
   AudioComponentDescription desc;
@@ -261,15 +299,111 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_initialize
   if (comp == NULL) {
     // TODO(mhroth): Throw an Exception. Something has gone terribly wrong.
   }
-  AudioComponentInstanceNew(comp, &(jcaStruct->auhalOutput)); // open the component and initialise it (10.6 and later)
-    
+  
   // http://osdir.com/ml/coreaudio-api/2009-10/msg01790.html
   // Ttell the AudioDevice to use its own runloop. This allows it to react autonomously to
   // sample rate changes.
   AudioHardwareSetProperty(kAudioHardwarePropertyRunLoop, sizeof(CFRunLoopRef), NULL);
+    
+  if (jinputArray != NULL) {
+    // the intput set is non-empty. Configure the AUHAL to be in the graph and provide input
+    
+    AudioComponentInstanceNew(comp, &(jcaStruct->auhalInput)); // open the component and initialise it (10.6 and later)
+    
+    // enable input on the AUHAL
+    UInt32 enableIO = 1;
+    err =  AudioUnitSetProperty(jcaStruct->auhalInput,
+        kAudioOutputUnitProperty_EnableIO,
+        kAudioUnitScope_Input, 1, // input element
+        &enableIO, sizeof(UInt32));
+    
+    // disable output on the AUHAL
+    enableIO = 0;
+    err =  AudioUnitSetProperty(jcaStruct->auhalInput,
+        kAudioOutputUnitProperty_EnableIO,
+        kAudioUnitScope_Output, 0, // output element
+        &enableIO, sizeof(UInt32));
+    
+    // set the hardware device to which the AUHAL is connected
+    err = AudioUnitSetProperty(jcaStruct->auhalInput,
+        kAudioOutputUnitProperty_CurrentDevice, 
+        kAudioUnitScope_Global, 0, 
+        &jinputDeviceId, sizeof(AudioDeviceID));
+    
+    // configure channel map and channel backing buffers
+    SInt32 channelMap[jnumChannelsInput];
+    jclass jclazzAudioLet =  (*env)->FindClass(env, "com/synthbot/JCoreAudio/AudioLet");
+    jcaStruct->blockSize = jblockSize;
+    jcaStruct->numChannelsInput = jnumChannelsInput;
+    jcaStruct->channelsInput = (float **) malloc(jnumChannelsInput * sizeof(float *));
+    for (int i = 0, k = 0; i < (*env)->GetArrayLength(env, jinputArray); i++) {
+      // get the number of channels in this let
+      jobject objAudioLet = (*env)->GetObjectArrayElement(env, jinputArray, i);
+      int numChannels = (*env)->CallIntMethod(env, objAudioLet, (*env)->GetMethodID(env, jclazzAudioLet, "getNumChannels", "()I"));
+      int channelIndex = (*env)->CallIntMethod(env, objAudioLet, (*env)->GetMethodID(env, jclazzAudioLet, "getChannelIndex", "()I"));
+      for (int j = 0; j < numChannels; j++, k++, channelIndex++) {
+        // create the native backing buffer
+        jcaStruct->channelsInput[k] = (float *) calloc(jblockSize, sizeof(float));
+        
+        // create a new ByteBuffer
+        jobject jByteBuffer = (*env)->NewDirectByteBuffer(env, jcaStruct->channelsInput[k], jblockSize*sizeof(float));
+        
+        // assign ByteBuffer to channel
+        (*env)->CallVoidMethod(env, objAudioLet,
+            (*env)->GetMethodID(env, jclazzAudioLet, "setChannelBuffer", "(ILjava/nio/ByteBuffer;)V"),
+            j, jByteBuffer);
+        
+        channelMap[k] = channelIndex;
+      }
+    }
+    
+    // set the channel map
+    AudioUnitSetProperty(jcaStruct->auhalInput,
+        kAudioOutputUnitProperty_ChannelMap,
+        kAudioUnitScope_Output, 1,
+        channelMap, jnumChannelsInput);
+    
+    // register audio callback
+    AURenderCallbackStruct renderCallbackStruct;
+    renderCallbackStruct.inputProc = &inputRenderCallback;
+    renderCallbackStruct.inputProcRefCon = jcaStruct;
+    err = AudioUnitSetProperty(jcaStruct->auhalInput, 
+        kAudioOutputUnitProperty_SetInputCallback,
+        kAudioUnitScope_Global, 0,
+        &renderCallbackStruct, sizeof(AURenderCallbackStruct));
+    
+    // configure output device to given sample rate
+    AudioStreamBasicDescription asbd;
+    UInt32 propSize = sizeof(AudioStreamBasicDescription);
+    AudioUnitGetProperty (jcaStruct->auhalInput,
+        kAudioUnitProperty_StreamFormat,
+        kAudioUnitScope_Input, 1,
+        &asbd, &propSize);
+    asbd.mSampleRate = (Float64) jsampleRate; // update the sample rate    
+    AudioUnitSetProperty(jcaStruct->auhalInput,
+        kAudioUnitProperty_StreamFormat,
+        kAudioUnitScope_Output, 1,
+        &asbd, sizeof(AudioStreamBasicDescription));
+    
+    // set the device sample rate
+    Float64 sampleRate = (Float64) jsampleRate;
+    AudioDeviceSetProperty(jinputDeviceId, NULL, 0, true,
+        kAudioDevicePropertyNominalSampleRate, sizeof(Float64), &sampleRate);
+    
+    // set requested block size
+    AudioUnitSetProperty(jcaStruct->auhalInput,
+        kAudioDevicePropertyBufferFrameSize,
+        kAudioUnitScope_Output, 1,
+        &jblockSize, sizeof(UInt32));
+    
+    // now that the AUHAL is set up, initialise it
+    AudioUnitInitialize(jcaStruct->auhalInput);
+  }
 
   if (joutputArray != NULL) {
     // the output set is non-empty. Configure the AUHAL to be in the graph and provide output
+
+    AudioComponentInstanceNew(comp, &(jcaStruct->auhalOutput)); // open the component and initialise it (10.6 and later)
     
     // disable input on the AUHAL
     UInt32 enableIO = 0;
@@ -329,7 +463,7 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_initialize
     renderCallbackStruct.inputProc = &outputRenderCallback;
     renderCallbackStruct.inputProcRefCon = jcaStruct;
     err = AudioUnitSetProperty(jcaStruct->auhalOutput, 
-        kAudioUnitProperty_SetRenderCallback, // kAudioOutputUnitProperty_SetInputCallback kAudioUnitProperty_SetRenderCallback
+        kAudioUnitProperty_SetRenderCallback,
         kAudioUnitScope_Global, 0,
         &renderCallbackStruct, sizeof(AURenderCallbackStruct));
     

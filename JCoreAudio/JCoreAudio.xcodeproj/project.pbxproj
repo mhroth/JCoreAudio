@@ -20,7 +20,7 @@
 
 /* Begin PBXFileReference section */
 		904C095D156C11DA00017CC2 /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
-		908730CD156AC9220011F922 /* libJCoreAudio.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libJCoreAudio.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
+		908730CD156AC9220011F922 /* libJCoreAudio.jnilib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libJCoreAudio.jnilib; sourceTree = BUILT_PRODUCTS_DIR; };
 		908730D8156AC9220011F922 /* JCoreAudio-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "JCoreAudio-Prefix.pch"; sourceTree = "<group>"; };
 		908730D9156AC9220011F922 /* JCoreAudio.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = JCoreAudio.h; sourceTree = "<group>"; };
 		908730DA156AC9220011F922 /* JCoreAudio.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = JCoreAudio.m; sourceTree = "<group>"; };
@@ -61,7 +61,7 @@
 		908730CE156AC9220011F922 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				908730CD156AC9220011F922 /* libJCoreAudio.dylib */,
+				908730CD156AC9220011F922 /* libJCoreAudio.jnilib */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -129,7 +129,7 @@
 			);
 			name = JCoreAudio;
 			productName = JCoreAudio;
-			productReference = 908730CD156AC9220011F922 /* libJCoreAudio.dylib */;
+			productReference = 908730CD156AC9220011F922 /* libJCoreAudio.jnilib */;
 			productType = "com.apple.product-type.library.dynamic";
 		};
 /* End PBXNativeTarget section */
@@ -222,6 +222,7 @@
 			buildSettings = {
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
+				EXECUTABLE_EXTENSION = jnilib;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "JCoreAudio/JCoreAudio-Prefix.pch";
 				PRODUCT_NAME = libJCoreAudio;
@@ -233,6 +234,7 @@
 			buildSettings = {
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
+				EXECUTABLE_EXTENSION = jnilib;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "JCoreAudio/JCoreAudio-Prefix.pch";
 				PRODUCT_NAME = libJCoreAudio;
