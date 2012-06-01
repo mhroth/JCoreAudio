@@ -27,11 +27,11 @@
 #import "com_synthbot_JCoreAudio_JCoreAudio.h"
 #import "JCoreAudio.h"
 
-jclass JCA_jclazzJCoreAudio;
-jmethodID JCA_fireOnCoreAudioInputMid;
-jmethodID JCA_fireOnCoreAudioOutputMid;
-
 typedef struct JCoreAudioStruct {
+  jclass jclazzJCoreAudio;
+  jmethodID fireOnCoreAudioInputMid;
+  jmethodID fireOnCoreAudioOutputMid;
+
   AudioUnit auhalInput;
   AudioUnit auhalOutput;
   int numChannelsInput;
@@ -53,15 +53,6 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved) {
   
   JNIEnv *env = NULL;
   (*jvm)->GetEnv(jvm, (void **) &env, JNI_VERSION_1_4);
-//  jcaStruct->jclazzJCoreAudio = (*env)->FindClass(env, "com/synthbot/JCoreAudio/JCoreAudio");
-//  jcaStruct->fireOnCoreAudioCallbackMid = (*env)->GetStaticMethodID(env, jcaStruct->jclazzJCoreAudio,
-//      "fireOnCoreAudioCallback", "()V");
-  
-  JCA_jclazzJCoreAudio = (*env)->FindClass(env, "com/synthbot/JCoreAudio/JCoreAudio");
-  JCA_fireOnCoreAudioInputMid = (*env)->GetStaticMethodID(env, JCA_jclazzJCoreAudio,
-      "fireOnCoreAudioInput", "(D)V");
-  JCA_fireOnCoreAudioOutputMid = (*env)->GetStaticMethodID(env, JCA_jclazzJCoreAudio,
-      "fireOnCoreAudioOutput", "(D)V");
   
   return JNI_VERSION_1_4;
 }
@@ -72,7 +63,6 @@ void JNI_OnUnload(JavaVM *vm, void *reserved) {
 
 OSStatus inputRenderCallback(void *inRefCon, AudioUnitRenderActionFlags *ioActionFlags,
     const AudioTimeStamp *inTimeStamp, UInt32 inBusNumber, UInt32 inNumberFrames, AudioBufferList *ioData) {
-  static jclass jclassJCA = 0;
   
   JNIEnv *env = nil;
   jint res = (*JCoreAudio_globalJvm)->AttachCurrentThreadAsDaemon(JCoreAudio_globalJvm, (void **) &env, NULL);
@@ -101,8 +91,7 @@ OSStatus inputRenderCallback(void *inRefCon, AudioUnitRenderActionFlags *ioActio
     }
 
     // make audio callback to Java and fill the byte buffers
-    if (jclassJCA == 0) jclassJCA = (*env)->FindClass(env, "com/synthbot/JCoreAudio/JCoreAudio");
-    (*env)->CallStaticVoidMethod(env, jclassJCA, JCA_fireOnCoreAudioInputMid, inTimeStamp->mSampleTime);
+    (*env)->CallStaticVoidMethod(env, jca->jclazzJCoreAudio, jca->fireOnCoreAudioInputMid, inTimeStamp->mSampleTime);
   }
   
   return noErr; // everything is gonna be ok
@@ -112,15 +101,13 @@ OSStatus inputRenderCallback(void *inRefCon, AudioUnitRenderActionFlags *ioActio
 // gets output audio from Java and sends it to the output hardware device
 OSStatus outputRenderCallback(void *inRefCon, AudioUnitRenderActionFlags *ioActionFlags,
   const AudioTimeStamp *inTimeStamp, UInt32 inBusNumber, UInt32 inNumberFrames, AudioBufferList *ioData) {
-  static jclass jclassJCA = 0;
-  
+
   JNIEnv *env = nil;
   jint res = (*JCoreAudio_globalJvm)->AttachCurrentThreadAsDaemon(JCoreAudio_globalJvm, (void **) &env, NULL);
   if (res == JNI_OK) {
     // make audio callback to Java and fill the byte buffers
     JCoreAudioStruct *jca = (JCoreAudioStruct *) inRefCon; 
-    if (jclassJCA == 0) jclassJCA = (*env)->FindClass(env, "com/synthbot/JCoreAudio/JCoreAudio");
-    (*env)->CallStaticVoidMethod(env, jclassJCA, JCA_fireOnCoreAudioOutputMid, inTimeStamp->mSampleTime);
+    (*env)->CallStaticVoidMethod(env, jca->jclazzJCoreAudio, jca->fireOnCoreAudioOutputMid, inTimeStamp->mSampleTime);
     
     // interleave the channels to the backing buffers
     // TODO(mhroth): vectorise this like a real man, ok?
@@ -282,6 +269,15 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_initialize
       jarray joutputArray, jint jnumChannelsOutput, jint joutputDeviceId,
       jint jblockSize, jfloat jsampleRate) {
    
+  // cache these values for use during audio callbacks
+  // creating these references here ensures that the same class loader is used as for the java
+  // object themselves. http://forums.netbeans.org/topic8087.html
+  jcaStruct->jclazzJCoreAudio = (*env)->FindClass(env, "com/synthbot/JCoreAudio/JCoreAudio");
+  jcaStruct->fireOnCoreAudioInputMid = (*env)->GetStaticMethodID(env, jcaStruct->jclazzJCoreAudio,
+      "fireOnCoreAudioInput", "(D)V");
+  jcaStruct->fireOnCoreAudioOutputMid = (*env)->GetStaticMethodID(env, jcaStruct->jclazzJCoreAudio,
+      "fireOnCoreAudioOutput", "(D)V");
+    
   // initialise to known values
   jcaStruct->auhalInput = NULL;
   jcaStruct->auhalOutput = NULL;
