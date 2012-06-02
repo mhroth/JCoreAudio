@@ -95,7 +95,7 @@ public class AudioDevice {
   public int getMinimumBufferSize() {
     return getMinimumBufferSize(id);
   }
-  private native int getMinimumBufferSize(int audioDeviceId);
+  private static native int getMinimumBufferSize(int audioDeviceId);
   
   /**
    * Returns the maximum buffer size of this device.
@@ -103,7 +103,7 @@ public class AudioDevice {
   public int getMaximumBufferSize() {
     return getMaximumBufferSize(id);
   }
-  private native int getMaximumBufferSize(int audioDeviceid);
+  private static native int getMaximumBufferSize(int audioDeviceid);
   
   /**
    * Returns the current sample rate of this <code>AudioDevice</code>. This can be changed manually

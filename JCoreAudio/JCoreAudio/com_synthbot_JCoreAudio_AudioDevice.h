@@ -21,7 +21,7 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_AudioDevice_queryLetSet
  * Signature: (I)I
  */
 JNIEXPORT jint JNICALL Java_com_synthbot_JCoreAudio_AudioDevice_getMinimumBufferSize
-  (JNIEnv *, jobject, jint);
+  (JNIEnv *, jclass, jint);
 
 /*
  * Class:     com_synthbot_JCoreAudio_AudioDevice
@@ -29,7 +29,7 @@ JNIEXPORT jint JNICALL Java_com_synthbot_JCoreAudio_AudioDevice_getMinimumBuffer
  * Signature: (I)I
  */
 JNIEXPORT jint JNICALL Java_com_synthbot_JCoreAudio_AudioDevice_getMaximumBufferSize
-  (JNIEnv *, jobject, jint);
+  (JNIEnv *, jclass, jint);
   
 /*
  * Class:     com_synthbot_JCoreAudio_AudioDevice
@@ -37,7 +37,7 @@ JNIEXPORT jint JNICALL Java_com_synthbot_JCoreAudio_AudioDevice_getMaximumBuffer
  * Signature: (I)F
  */
 JNIEXPORT jfloat JNICALL Java_com_synthbot_JCoreAudio_AudioDevice_getSampleRate
-(JNIEnv *, jobject, jint);
+(JNIEnv *, jclass, jint);
 
 #ifdef __cplusplus
 }

@@ -18,9 +18,9 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_fillAudioDeviceLi
 /*
  * Class:     com_synthbot_JCoreAudio_JCoreAudio
  * Method:    initialise
- * Signature: ([Ljava/lang/Object;II[Ljava/lang/Object;IIIIF)V
+ * Signature: ([Ljava/lang/Object;II[Ljava/lang/Object;IIIIF)J
  */
-JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_initialize
+JNIEXPORT jlong JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_initialize
   (JNIEnv *, jclass, jarray, jint, jint, jarray, jint, jint, jint, jfloat);
 
 /*
@@ -29,7 +29,7 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_initialize
  * Signature: (Z)V
  */
 JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_play
-  (JNIEnv *, jclass, jboolean);
+  (JNIEnv *, jclass, jboolean, jlong);
 
 #ifdef __cplusplus
 }

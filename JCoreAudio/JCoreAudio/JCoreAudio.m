@@ -42,23 +42,16 @@ typedef struct JCoreAudioStruct {
 } JCoreAudioStruct;
 
 JavaVM *JCoreAudio_globalJvm;
-JCoreAudioStruct *jcaStruct;
 
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved) {
   // require JNI_VERSION_1_4 for access to NIO functions
   // http://docs.oracle.com/javase/1.4.2/docs/guide/jni/jni-14.html
   JCoreAudio_globalJvm = jvm; // store the JVM so that it can be used to attach CoreAudio threads to the JVM during callbacks
   
-  jcaStruct = (JCoreAudioStruct *) malloc(sizeof(JCoreAudioStruct));
-  
   JNIEnv *env = NULL;
   (*jvm)->GetEnv(jvm, (void **) &env, JNI_VERSION_1_4);
   
   return JNI_VERSION_1_4;
-}
-
-void JNI_OnUnload(JavaVM *vm, void *reserved) {
-  free(jcaStruct);
 }
 
 OSStatus inputRenderCallback(void *inRefCon, AudioUnitRenderActionFlags *ioActionFlags,
@@ -231,7 +224,7 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_AudioLet_queryAvailableSampl
 }
 
 JNIEXPORT jint JNICALL Java_com_synthbot_JCoreAudio_AudioDevice_getMinimumBufferSize
-    (JNIEnv *env, jobject jobj, jint jaudioDeviceId) {
+    (JNIEnv *env, jclass jclazz, jint jaudioDeviceId) {
 
   AudioValueRange range;
   UInt32 propSize = sizeof(AudioValueRange);
@@ -242,7 +235,7 @@ JNIEXPORT jint JNICALL Java_com_synthbot_JCoreAudio_AudioDevice_getMinimumBuffer
 }
 
 JNIEXPORT jint JNICALL Java_com_synthbot_JCoreAudio_AudioDevice_getMaximumBufferSize
-    (JNIEnv *env, jobject jobj, jint jaudioDeviceId) {
+    (JNIEnv *env, jclass jclazz, jint jaudioDeviceId) {
       
   AudioValueRange range;
   UInt32 propSize = sizeof(AudioValueRange);
@@ -253,7 +246,7 @@ JNIEXPORT jint JNICALL Java_com_synthbot_JCoreAudio_AudioDevice_getMaximumBuffer
 }
 
 JNIEXPORT jfloat JNICALL Java_com_synthbot_JCoreAudio_AudioDevice_getSampleRate
-    (JNIEnv *env, jobject jobj, jint jaudioDeviceId) {
+    (JNIEnv *env, jclass jclazz, jint jaudioDeviceId) {
   
   Float64 sampleRate = 0.0;
   UInt32 propSize = sizeof(Float64);
@@ -264,10 +257,12 @@ JNIEXPORT jfloat JNICALL Java_com_synthbot_JCoreAudio_AudioDevice_getSampleRate
 }
 
 // file:///Users/mhroth/Library/Developer/Shared/Documentation/DocSets/com.apple.adc.documentation.AppleLion.CoreReference.docset/Contents/Resources/Documents/index.html#technotes/tn2091/_index.html
-JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_initialize
+JNIEXPORT jlong JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_initialize
   (JNIEnv *env, jclass jclazz, jarray jinputArray, jint jnumChannelsInput, jint jinputDeviceId,
       jarray joutputArray, jint jnumChannelsOutput, jint joutputDeviceId,
       jint jblockSize, jfloat jsampleRate) {
+    
+  JCoreAudioStruct * jcaStruct = (JCoreAudioStruct *) malloc(sizeof(JCoreAudioStruct));
    
   // cache these values for use during audio callbacks
   // creating these references here ensures that the same class loader is used as for the java
@@ -297,7 +292,7 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_initialize
   }
   
   // http://osdir.com/ml/coreaudio-api/2009-10/msg01790.html
-  // Ttell the AudioDevice to use its own runloop. This allows it to react autonomously to
+  // Tell the AudioDevice to use its own runloop. This allows it to react autonomously to
   // sample rate changes.
   AudioHardwareSetProperty(kAudioHardwarePropertyRunLoop, sizeof(CFRunLoopRef), NULL);
     
@@ -394,6 +389,8 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_initialize
     
     // now that the AUHAL is set up, initialise it
     AudioUnitInitialize(jcaStruct->auhalInput);
+  } else {
+    jcaStruct->numChannelsInput = 0;
   }
 
   if (joutputArray != NULL) {
@@ -489,16 +486,45 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_initialize
     
     // now that the AUHAL is set up, initialise it
     AudioUnitInitialize(jcaStruct->auhalOutput);
+  } else {
+    jcaStruct->numChannelsOutput = 0;
   }
+    
+  return (jlong) jcaStruct;
 }
 
 JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_uninitialize
     (JNIEnv *env, jclass jclazz, jlong nativePtr) {
-  
+
+  // free all native resources
+  JCoreAudioStruct *jca = (JCoreAudioStruct *) nativePtr;
+
+  for (int i = 0; i < jca->numChannelsInput; i++) {
+    free(jca->channelsInput[i]);
+  }
+  free(jca->channelsInput);
+  for (int i = 0; i < jca->numChannelsOutput; i++) {
+    free(jca->channelsOutput[i]);
+  }
+  free(jca->channelsOutput);
+      
+  if (jca->auhalInput != NULL) {
+    AudioUnitUninitialize(jca->auhalInput);
+    AudioComponentInstanceDispose(jca->auhalInput);
+  }
+  if (jca->auhalOutput != NULL) {
+    AudioUnitUninitialize(jca->auhalOutput);
+    AudioComponentInstanceDispose(jca->auhalOutput);    
+  }
+      
+  free(jca);
 }
 
 JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_play
-    (JNIEnv *env, jclass jclazz, jboolean shouldPlay) {
+    (JNIEnv *env, jclass jclazz, jboolean shouldPlay, jlong nativePtr) {
+  
+  JCoreAudioStruct *jcaStruct = (JCoreAudioStruct *) nativePtr;
+      
   if (shouldPlay) {
     if (jcaStruct->auhalInput != NULL) AudioOutputUnitStart(jcaStruct->auhalInput);
     if (jcaStruct->auhalOutput != NULL) AudioOutputUnitStart(jcaStruct->auhalOutput);
