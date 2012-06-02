@@ -19,8 +19,24 @@
  *
  */
 
-#import <Foundation/Foundation.h>
+package ch.section6.jcoreaudio;
 
-@interface JCoreAudio : NSObject
+import java.util.Set;
 
-@end
+public interface CoreAudioListener {
+   
+  /**
+   * 
+   * @param timestamp  The time in samples at the beginning of the block.
+   * @param inputLets  The set of input AudioLets with which Core Audio was initialized.
+   */
+  public void onCoreAudioInput(double timestamp, Set<AudioLet> inputLets);
+  
+  /**
+   * 
+   * @param timestamp  The time in samples at the beginning of the block.
+   * @param outputLets  The set of output AudioLets with which Core Audio was initialized.
+   */
+  public void onCoreAudioOutput(double timestamp, Set<AudioLet> outputLets);
+
+}

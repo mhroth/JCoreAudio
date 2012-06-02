@@ -7,30 +7,29 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		90224B74157A959000DDB959 /* ch_section6_jcoreaudio_AudioDevice.h in Headers */ = {isa = PBXBuildFile; fileRef = 90224B71157A959000DDB959 /* ch_section6_jcoreaudio_AudioDevice.h */; };
+		90224B75157A959000DDB959 /* ch_section6_jcoreaudio_AudioLet.h in Headers */ = {isa = PBXBuildFile; fileRef = 90224B72157A959000DDB959 /* ch_section6_jcoreaudio_AudioLet.h */; };
+		90224B76157A959000DDB959 /* ch_section6_jcoreaudio_JCoreAudio.h in Headers */ = {isa = PBXBuildFile; fileRef = 90224B73157A959000DDB959 /* ch_section6_jcoreaudio_JCoreAudio.h */; };
 		904C095E156C11DA00017CC2 /* CoreAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 904C095D156C11DA00017CC2 /* CoreAudio.framework */; };
 		908730DB156AC9220011F922 /* JCoreAudio.m in Sources */ = {isa = PBXBuildFile; fileRef = 908730DA156AC9220011F922 /* JCoreAudio.m */; };
 		908730E2156ACF0C0011F922 /* JavaVM.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 908730E1156ACF0C0011F922 /* JavaVM.framework */; };
 		908730E4156ACF370011F922 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 908730E3156ACF370011F922 /* Foundation.framework */; };
-		908730E6156ACF8F0011F922 /* com_synthbot_JCoreAudio_JCoreAudio.h in Headers */ = {isa = PBXBuildFile; fileRef = 908730E5156ACF8F0011F922 /* com_synthbot_JCoreAudio_JCoreAudio.h */; };
 		908730EE156AD0E80011F922 /* CoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 908730ED156AD0E80011F922 /* CoreServices.framework */; };
 		908730F2156AD3B60011F922 /* AudioUnit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 908730F1156AD3B60011F922 /* AudioUnit.framework */; };
-		90D07190156D9A5A0085F000 /* com_synthbot_JCoreAudio_AudioLet.h in Headers */ = {isa = PBXBuildFile; fileRef = 90D0718F156D9A5A0085F000 /* com_synthbot_JCoreAudio_AudioLet.h */; };
-		90D07193156DA09E0085F000 /* com_synthbot_JCoreAudio_AudioDevice.h in Headers */ = {isa = PBXBuildFile; fileRef = 90D07192156DA09E0085F000 /* com_synthbot_JCoreAudio_AudioDevice.h */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		90224B71157A959000DDB959 /* ch_section6_jcoreaudio_AudioDevice.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ch_section6_jcoreaudio_AudioDevice.h; sourceTree = "<group>"; };
+		90224B72157A959000DDB959 /* ch_section6_jcoreaudio_AudioLet.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ch_section6_jcoreaudio_AudioLet.h; sourceTree = "<group>"; };
+		90224B73157A959000DDB959 /* ch_section6_jcoreaudio_JCoreAudio.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ch_section6_jcoreaudio_JCoreAudio.h; sourceTree = "<group>"; };
 		904C095D156C11DA00017CC2 /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
 		908730CD156AC9220011F922 /* libJCoreAudio.jnilib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libJCoreAudio.jnilib; sourceTree = BUILT_PRODUCTS_DIR; };
 		908730D8156AC9220011F922 /* JCoreAudio-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "JCoreAudio-Prefix.pch"; sourceTree = "<group>"; };
-		908730D9156AC9220011F922 /* JCoreAudio.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = JCoreAudio.h; sourceTree = "<group>"; };
 		908730DA156AC9220011F922 /* JCoreAudio.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = JCoreAudio.m; sourceTree = "<group>"; };
 		908730E1156ACF0C0011F922 /* JavaVM.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaVM.framework; path = System/Library/Frameworks/JavaVM.framework; sourceTree = SDKROOT; };
 		908730E3156ACF370011F922 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
-		908730E5156ACF8F0011F922 /* com_synthbot_JCoreAudio_JCoreAudio.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = com_synthbot_JCoreAudio_JCoreAudio.h; sourceTree = "<group>"; };
 		908730ED156AD0E80011F922 /* CoreServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreServices.framework; path = System/Library/Frameworks/CoreServices.framework; sourceTree = SDKROOT; };
 		908730F1156AD3B60011F922 /* AudioUnit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioUnit.framework; path = System/Library/Frameworks/AudioUnit.framework; sourceTree = SDKROOT; };
-		90D0718F156D9A5A0085F000 /* com_synthbot_JCoreAudio_AudioLet.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = com_synthbot_JCoreAudio_AudioLet.h; sourceTree = "<group>"; };
-		90D07192156DA09E0085F000 /* com_synthbot_JCoreAudio_AudioDevice.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = com_synthbot_JCoreAudio_AudioDevice.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -81,10 +80,9 @@
 		908730D6156AC9220011F922 /* JCoreAudio */ = {
 			isa = PBXGroup;
 			children = (
-				90D07192156DA09E0085F000 /* com_synthbot_JCoreAudio_AudioDevice.h */,
-				90D0718F156D9A5A0085F000 /* com_synthbot_JCoreAudio_AudioLet.h */,
-				908730E5156ACF8F0011F922 /* com_synthbot_JCoreAudio_JCoreAudio.h */,
-				908730D9156AC9220011F922 /* JCoreAudio.h */,
+				90224B71157A959000DDB959 /* ch_section6_jcoreaudio_AudioDevice.h */,
+				90224B72157A959000DDB959 /* ch_section6_jcoreaudio_AudioLet.h */,
+				90224B73157A959000DDB959 /* ch_section6_jcoreaudio_JCoreAudio.h */,
 				908730DA156AC9220011F922 /* JCoreAudio.m */,
 				908730D7156AC9220011F922 /* Supporting Files */,
 			);
@@ -106,9 +104,9 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				908730E6156ACF8F0011F922 /* com_synthbot_JCoreAudio_JCoreAudio.h in Headers */,
-				90D07190156D9A5A0085F000 /* com_synthbot_JCoreAudio_AudioLet.h in Headers */,
-				90D07193156DA09E0085F000 /* com_synthbot_JCoreAudio_AudioDevice.h in Headers */,
+				90224B74157A959000DDB959 /* ch_section6_jcoreaudio_AudioDevice.h in Headers */,
+				90224B75157A959000DDB959 /* ch_section6_jcoreaudio_AudioLet.h in Headers */,
+				90224B76157A959000DDB959 /* ch_section6_jcoreaudio_JCoreAudio.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

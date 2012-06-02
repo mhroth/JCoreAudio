@@ -22,10 +22,9 @@
 #import <AudioUnit/AudioUnit.h>
 #import <CoreAudio/CoreAudio.h>
 #import <CoreServices/CoreServices.h>
-#import "com_synthbot_JCoreAudio_AudioDevice.h"
-#import "com_synthbot_JCoreAudio_AudioLet.h"
-#import "com_synthbot_JCoreAudio_JCoreAudio.h"
-#import "JCoreAudio.h"
+#import "ch_section6_jcoreaudio_AudioDevice.h"
+#import "ch_section6_jcoreaudio_AudioLet.h"
+#import "ch_section6_jcoreaudio_JCoreAudio.h"
 
 typedef struct JCoreAudioStruct {
   jclass jclazzJCoreAudio;
@@ -115,10 +114,10 @@ OSStatus outputRenderCallback(void *inRefCon, AudioUnitRenderActionFlags *ioActi
   return noErr; // everything is gonna be ok
 }
 
-JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_fillAudioDeviceList
+JNIEXPORT void JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_fillAudioDeviceList
     (JNIEnv *env, jclass jclazz, jobject jlist) {
   
-  jclass jclazzAudioDevice = (*env)->FindClass(env, "com/synthbot/JCoreAudio/AudioDevice");
+  jclass jclazzAudioDevice = (*env)->FindClass(env, "ch/section6/jcoreaudio/AudioDevice");
   jclass jclazzArrayList = (*env)->FindClass(env, "java/util/ArrayList");
       
   // get number of AudioDevices
@@ -158,10 +157,10 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_fillAudioDeviceLi
   }
 }
 
-JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_AudioDevice_queryLetSet
+JNIEXPORT void JNICALL Java_ch_section6_jcoreaudio_AudioDevice_queryLetSet
     (JNIEnv *env, jclass jclazz, jobject jobj, jint deviceId, jboolean isInput, jobject jset) {
   
-  jclass jclazzAudioLet = (*env)->FindClass(env, "com/synthbot/JCoreAudio/AudioLet");
+  jclass jclazzAudioLet = (*env)->FindClass(env, "ch/section6/jcoreaudio/AudioLet");
   jclass jclazzHashSet = (*env)->FindClass(env, "java/util/HashSet");
       
   // get the number of channels that this AudioDevice has
@@ -181,7 +180,7 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_AudioDevice_queryLetSet
     
     // create a new AudioChannel object
     jobject jAudioLet = (*env)->NewObject(env, jclazzAudioLet,
-        (*env)->GetMethodID(env, jclazzAudioLet, "<init>", "(Lcom/synthbot/JCoreAudio/AudioDevice;IILjava/lang/String;ZI)V"),
+        (*env)->GetMethodID(env, jclazzAudioLet, "<init>", "(Lch/section6/jcoreaudio/AudioDevice;IILjava/lang/String;ZI)V"),
         jobj, j, channelIndex, (*env)->NewStringUTF(env, strADName),
         isInput, buffLetList[j].mBuffers[0].mNumberChannels);
     
@@ -194,7 +193,7 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_AudioDevice_queryLetSet
   }
 }
 
-JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_AudioLet_queryAvailableSamplerates
+JNIEXPORT void JNICALL Java_ch_section6_jcoreaudio_AudioLet_queryAvailableSamplerates
     (JNIEnv *env, jclass jclazz, jint deviceId, jint letIndex, jboolean isInput, jobject jset) {
   
   jclass jclazzFloat = (*env)->FindClass(env, "java/lang/Float");
@@ -223,7 +222,7 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_AudioLet_queryAvailableSampl
   }
 }
 
-JNIEXPORT jint JNICALL Java_com_synthbot_JCoreAudio_AudioDevice_getMinimumBufferSize
+JNIEXPORT jint JNICALL Java_ch_section6_jcoreaudio_AudioDevice_getMinimumBufferSize
     (JNIEnv *env, jclass jclazz, jint jaudioDeviceId) {
 
   AudioValueRange range;
@@ -234,7 +233,7 @@ JNIEXPORT jint JNICALL Java_com_synthbot_JCoreAudio_AudioDevice_getMinimumBuffer
   return (jint) range.mMinimum;
 }
 
-JNIEXPORT jint JNICALL Java_com_synthbot_JCoreAudio_AudioDevice_getMaximumBufferSize
+JNIEXPORT jint JNICALL Java_ch_section6_jcoreaudio_AudioDevice_getMaximumBufferSize
     (JNIEnv *env, jclass jclazz, jint jaudioDeviceId) {
       
   AudioValueRange range;
@@ -245,7 +244,7 @@ JNIEXPORT jint JNICALL Java_com_synthbot_JCoreAudio_AudioDevice_getMaximumBuffer
   return (jint) range.mMaximum;
 }
 
-JNIEXPORT jfloat JNICALL Java_com_synthbot_JCoreAudio_AudioDevice_getSampleRate
+JNIEXPORT jfloat JNICALL Java_ch_section6_jcoreaudio_AudioDevice_getSampleRate
     (JNIEnv *env, jclass jclazz, jint jaudioDeviceId) {
   
   Float64 sampleRate = 0.0;
@@ -257,7 +256,7 @@ JNIEXPORT jfloat JNICALL Java_com_synthbot_JCoreAudio_AudioDevice_getSampleRate
 }
 
 // file:///Users/mhroth/Library/Developer/Shared/Documentation/DocSets/com.apple.adc.documentation.AppleLion.CoreReference.docset/Contents/Resources/Documents/index.html#technotes/tn2091/_index.html
-JNIEXPORT jlong JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_initialize
+JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
   (JNIEnv *env, jclass jclazz, jarray jinputArray, jint jnumChannelsInput, jint jinputDeviceId,
       jarray joutputArray, jint jnumChannelsOutput, jint joutputDeviceId,
       jint jblockSize, jfloat jsampleRate) {
@@ -267,7 +266,7 @@ JNIEXPORT jlong JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_initialize
   // cache these values for use during audio callbacks
   // creating these references here ensures that the same class loader is used as for the java
   // object themselves. http://forums.netbeans.org/topic8087.html
-  jcaStruct->jclazzJCoreAudio = (*env)->FindClass(env, "com/synthbot/JCoreAudio/JCoreAudio");
+  jcaStruct->jclazzJCoreAudio = (*env)->FindClass(env, "ch/section6/jcoreaudio/JCoreAudio");
   jcaStruct->fireOnCoreAudioInputMid = (*env)->GetStaticMethodID(env, jcaStruct->jclazzJCoreAudio,
       "fireOnCoreAudioInput", "(D)V");
   jcaStruct->fireOnCoreAudioOutputMid = (*env)->GetStaticMethodID(env, jcaStruct->jclazzJCoreAudio,
@@ -323,7 +322,7 @@ JNIEXPORT jlong JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_initialize
     
     // configure channel map and channel backing buffers
     SInt32 channelMap[jnumChannelsInput];
-    jclass jclazzAudioLet =  (*env)->FindClass(env, "com/synthbot/JCoreAudio/AudioLet");
+    jclass jclazzAudioLet =  (*env)->FindClass(env, "ch/section6/jcoreaudio/AudioLet");
     jcaStruct->blockSize = jblockSize;
     jcaStruct->numChannelsInput = jnumChannelsInput;
     jcaStruct->channelsInput = (float **) malloc(jnumChannelsInput * sizeof(float *));
@@ -420,7 +419,7 @@ JNIEXPORT jlong JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_initialize
 
     // configure channel map and channel backing buffers
     SInt32 channelMap[jnumChannelsOutput];
-    jclass jclazzAudioLet =  (*env)->FindClass(env, "com/synthbot/JCoreAudio/AudioLet");
+    jclass jclazzAudioLet =  (*env)->FindClass(env, "ch/section6/jcoreaudio/AudioLet");
     jcaStruct->blockSize = jblockSize;
     jcaStruct->numChannelsOutput = jnumChannelsOutput;
     jcaStruct->channelsOutput = (float **) malloc(jnumChannelsOutput * sizeof(float *));
@@ -493,7 +492,7 @@ JNIEXPORT jlong JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_initialize
   return (jlong) jcaStruct;
 }
 
-JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_uninitialize
+JNIEXPORT void JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_uninitialize
     (JNIEnv *env, jclass jclazz, jlong nativePtr) {
 
   // free all native resources
@@ -520,7 +519,7 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_uninitialize
   free(jca);
 }
 
-JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_play
+JNIEXPORT void JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_play
     (JNIEnv *env, jclass jclazz, jboolean shouldPlay, jlong nativePtr) {
   
   JCoreAudioStruct *jcaStruct = (JCoreAudioStruct *) nativePtr;
@@ -533,7 +532,3 @@ JNIEXPORT void JNICALL Java_com_synthbot_JCoreAudio_JCoreAudio_play
     if (jcaStruct->auhalOutput != NULL) AudioOutputUnitStop(jcaStruct->auhalOutput);
   }
 }
-
-@implementation JCoreAudio
-
-@end
