@@ -1,9 +1,9 @@
-# About JCoreAudio
+# JCoreAudio
 JCoreAudio is a Java interface to Apple's [Core Audio](http://developer.apple.com/library/ios/#documentation/MusicAudio/Conceptual/CoreAudioOverview/Introduction/Introduction.html) API. It provides low-latecy (< 10ms) input and output access to the available audio hardware, replacing the need to use the outdated and slow Java Sound API. This project is related to:
 * [JAsioHost](https://github.com/mhroth/jasiohost): a low-latency interface to ASIO on Windows
 * [FrogDisco](https://github.com/mhroth/FrogDisco): a low-latency interface to Core Audio with a simpler API
 
-# Getting Started
+## Getting Started
 ```Java
 AudioDevice outputDevice = audioDeviceList.get(2);
 Set<AudioLet> inputSet = audioDeviceList.get(0).getInputSet();
@@ -50,9 +50,9 @@ try {
 }
     
 // shut everything down again
-// it is also possible to refer to the singleton instance of JCoreAudio directly
+// note that it is also possible to refer to the singleton instance of JCoreAudio directly
 JCoreAudio.jcoreaudio.returnToState(CoreAudioState.UNINITIALIZED);
 ```
 
-# License
+## License
 JCoreAudio is licensed under a modified [LGPL](http://www.gnu.org/licenses/lgpl.html) with a **non-commercial** clause, in the spirit of the [Creative Commons Attribution-NonCommercial (CC BY-NC)](http://creativecommons.org/licenses/by-nc/3.0/) license.
