@@ -41,7 +41,7 @@ public class JCoreAudio {
   /**
    * 
    */
-  private CoreAudioState state = CoreAudioState.UNINITIALIZED;
+  private CoreAudioState state;
   
   /**
    * 
@@ -77,6 +77,7 @@ public class JCoreAudio {
   }
   
   private JCoreAudio() {
+    state = CoreAudioState.UNINITIALIZED;
     nativePtr = 0;
   }
   
@@ -254,6 +255,7 @@ public class JCoreAudio {
       default:
       case UNINITIALIZED: break; // nothing to do
     }
+    jcoreaudio = null;
   }
   private static native void uninitialize(long nativePtr);
   
