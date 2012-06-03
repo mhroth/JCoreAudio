@@ -83,7 +83,10 @@ OSStatus inputRenderCallback(void *inRefCon, AudioUnitRenderActionFlags *ioActio
     }
 
     // make audio callback to Java and fill the byte buffers
-    (*env)->CallStaticVoidMethod(env, jca->jclazzJCoreAudio, jca->fireOnCoreAudioInputMid, inTimeStamp->mSampleTime);
+    jclass jclazzJCoreAudio = (*env)->FindClass(env, "ch/section6/jcoreaudio/JCoreAudio");
+    (*env)->CallStaticVoidMethod(env, jclazzJCoreAudio,
+        (*env)->GetStaticMethodID(env, jclazzJCoreAudio,
+        "fireOnCoreAudioInput", "(D)V"), inTimeStamp->mSampleTime);
   }
   
   return noErr; // everything is gonna be ok
@@ -99,7 +102,10 @@ OSStatus outputRenderCallback(void *inRefCon, AudioUnitRenderActionFlags *ioActi
   if (res == JNI_OK) {
     // make audio callback to Java and fill the byte buffers
     JCoreAudioStruct *jca = (JCoreAudioStruct *) inRefCon; 
-    (*env)->CallStaticVoidMethod(env, jca->jclazzJCoreAudio, jca->fireOnCoreAudioOutputMid, inTimeStamp->mSampleTime);
+    jclass jclazzJCoreAudio = (*env)->FindClass(env, "ch/section6/jcoreaudio/JCoreAudio");
+    (*env)->CallStaticVoidMethod(env, jclazzJCoreAudio,
+        (*env)->GetStaticMethodID(env, jclazzJCoreAudio,
+        "fireOnCoreAudioOutput", "(D)V"), inTimeStamp->mSampleTime);
     
     // interleave the channels to the backing buffers
     // TODO(mhroth): vectorise this like a real man, ok?
