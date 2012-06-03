@@ -83,10 +83,7 @@ OSStatus inputRenderCallback(void *inRefCon, AudioUnitRenderActionFlags *ioActio
     }
 
     // make audio callback to Java and fill the byte buffers
-    jclass jclazzJCoreAudio = (*env)->FindClass(env, "ch/section6/jcoreaudio/JCoreAudio");
-    (*env)->CallStaticVoidMethod(env, jclazzJCoreAudio,
-        (*env)->GetStaticMethodID(env, jclazzJCoreAudio,
-        "fireOnCoreAudioInput", "(D)V"), inTimeStamp->mSampleTime);
+    (*env)->CallStaticVoidMethod(env, jca->jclazzJCoreAudio, jca->fireOnCoreAudioInputMid, inTimeStamp->mSampleTime);
   }
   
   return noErr; // everything is gonna be ok
@@ -102,10 +99,7 @@ OSStatus outputRenderCallback(void *inRefCon, AudioUnitRenderActionFlags *ioActi
   if (res == JNI_OK) {
     // make audio callback to Java and fill the byte buffers
     JCoreAudioStruct *jca = (JCoreAudioStruct *) inRefCon; 
-    jclass jclazzJCoreAudio = (*env)->FindClass(env, "ch/section6/jcoreaudio/JCoreAudio");
-    (*env)->CallStaticVoidMethod(env, jclazzJCoreAudio,
-        (*env)->GetStaticMethodID(env, jclazzJCoreAudio,
-        "fireOnCoreAudioOutput", "(D)V"), inTimeStamp->mSampleTime);
+    (*env)->CallStaticVoidMethod(env, jca->jclazzJCoreAudio, jca->fireOnCoreAudioOutputMid, inTimeStamp->mSampleTime);
     
     // interleave the channels to the backing buffers
     // TODO(mhroth): vectorise this like a real man, ok?
@@ -272,7 +266,7 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
   // cache these values for use during audio callbacks
   // creating these references here ensures that the same class loader is used as for the java
   // object themselves. http://forums.netbeans.org/topic8087.html
-  jcaStruct->jclazzJCoreAudio = (*env)->FindClass(env, "ch/section6/jcoreaudio/JCoreAudio");
+  jcaStruct->jclazzJCoreAudio = (*env)->NewGlobalRef(env, jclazz);
   jcaStruct->fireOnCoreAudioInputMid = (*env)->GetStaticMethodID(env, jcaStruct->jclazzJCoreAudio,
       "fireOnCoreAudioInput", "(D)V");
   jcaStruct->fireOnCoreAudioOutputMid = (*env)->GetStaticMethodID(env, jcaStruct->jclazzJCoreAudio,
@@ -504,14 +498,18 @@ JNIEXPORT void JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_uninitialize
   // free all native resources
   JCoreAudioStruct *jca = (JCoreAudioStruct *) nativePtr;
 
-  for (int i = 0; i < jca->numChannelsInput; i++) {
-    free(jca->channelsInput[i]);
+  if (jca->numChannelsInput > 0) {
+    for (int i = 0; i < jca->numChannelsInput; i++) {
+      free(jca->channelsInput[i]);
+    }
+    free(jca->channelsInput);    
   }
-  free(jca->channelsInput);
-  for (int i = 0; i < jca->numChannelsOutput; i++) {
-    free(jca->channelsOutput[i]);
+  if (jca->numChannelsOutput > 0) {
+    for (int i = 0; i < jca->numChannelsOutput; i++) {
+      free(jca->channelsOutput[i]);
+    }
+    free(jca->channelsOutput);    
   }
-  free(jca->channelsOutput);
       
   if (jca->auhalInput != NULL) {
     AudioUnitUninitialize(jca->auhalInput);
@@ -521,7 +519,9 @@ JNIEXPORT void JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_uninitialize
     AudioUnitUninitialize(jca->auhalOutput);
     AudioComponentInstanceDispose(jca->auhalOutput);    
   }
-      
+
+  (*env)->DeleteGlobalRef(env, jca->jclazzJCoreAudio);
+
   free(jca);
 }
 
