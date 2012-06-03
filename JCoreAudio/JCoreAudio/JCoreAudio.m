@@ -295,7 +295,7 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
   // sample rate changes.
   AudioHardwareSetProperty(kAudioHardwarePropertyRunLoop, sizeof(CFRunLoopRef), NULL);
     
-  if (jinputArray != NULL) {
+  if (jinputDeviceId != 0) {
     // the intput set is non-empty. Configure the AUHAL to be in the graph and provide input
     
     AudioComponentInstanceNew(comp, &(jcaStruct->auhalInput)); // open the component and initialise it (10.6 and later)
@@ -392,7 +392,7 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
     jcaStruct->numChannelsInput = 0;
   }
 
-  if (joutputArray != NULL) {
+  if (joutputDeviceId != 0) {
     // the output set is non-empty. Configure the AUHAL to be in the graph and provide output
 
     AudioComponentInstanceNew(comp, &(jcaStruct->auhalOutput)); // open the component and initialise it (10.6 and later)

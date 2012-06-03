@@ -31,20 +31,14 @@ import java.util.Set;
  */
 public class AudioDevice {
   
-  /**
-   * The name of this device.
-   */
+  /** The name of this device. */
   public final String name;
   
-  /**
-   * The name of the manufacturer of this device.
-   */
+  /** The name of the manufacturer of this device. */
   public final String manufacturer;
 
-  /**
-   * The system-assigned id of this device.
-   */
-  private final int id;
+  /** The system-assigned identifier of this device. */
+  public final int id;
   
   private final Set<AudioLet> inputLetSet;
   
@@ -69,8 +63,17 @@ public class AudioDevice {
     return id;
   }
   
+  public String getName() {
+    return name;
+  }
+  
+  public String getManufacturer() {
+    return manufacturer;
+  }
+  
   /**
-   * @return The set of input <code>AudioLet</code>s of this device.
+   * Returns the set of input <code>AudioLet</code>s of this device. If no inputs exist,
+   * the <code>Set</code> is empty.
    */
   public Set<AudioLet> getInputSet() {
     // return a defensive copy of the inputLetSet
@@ -78,28 +81,26 @@ public class AudioDevice {
   }
   
   /**
-   * @return The set of output <code>AudioLet</code>s of this device.
+   * Returns the set of output <code>AudioLet</code>s of this device. If no outputs exist,
+   * the <code>Set</code> is empty.
    */
   public Set<AudioLet> getOutputSet() {
     return new HashSet<AudioLet>(outputLetSet);
   }
   
+  /** Returns the current buffer size of this device. */
   public int getCurrentBufferSize() {
     return getCurrentBufferSize(id);
   }
   private native static int getCurrentBufferSize(int id);
   
-  /**
-   * Returns the minimum buffer size of this device.
-   */
+  /** Returns the minimum buffer size of this device. */
   public int getMinimumBufferSize() {
     return getMinimumBufferSize(id);
   }
   private static native int getMinimumBufferSize(int audioDeviceId);
   
-  /**
-   * Returns the maximum buffer size of this device.
-   */
+  /** Returns the maximum buffer size of this device. */
   public int getMaximumBufferSize() {
     return getMaximumBufferSize(id);
   }

@@ -35,9 +35,12 @@ public class ExampleJca {
     }
     
     // initialise JCoreAudio
+    AudioDevice outputDevice = audioDeviceList.get(2);
     Set<AudioLet> inputSet = audioDeviceList.get(0).getInputSet();
-    Set<AudioLet> outputSet = audioDeviceList.get(2).getOutputSet();
-    JCoreAudio.initialize(inputSet, outputSet, 512, 44100.0f);
+    Set<AudioLet> outputSet = outputDevice.getOutputSet();
+    
+    JCoreAudio.getInstance().initialize(inputSet, outputSet, 512,
+        outputDevice.getCurrentSampleRate());
     
     // set the callback listener
     JCoreAudio.getInstance().setListener(new CoreAudioListener() {
@@ -85,7 +88,7 @@ public class ExampleJca {
       e.printStackTrace(System.err);
     }
     
-    JCoreAudio.initialize(inputSet, outputSet, 512, 96000.0f);
+    JCoreAudio.getInstance().initialize(null, outputSet, 512, 96000.0f);
     
     // set the callback listener
     JCoreAudio.getInstance().setListener(new CoreAudioListener() {

@@ -34,19 +34,13 @@ import java.util.Set;
  */
 public class AudioLet {
   
-  /**
-   * The {@link AudioDevice} that this <code>AudioLet</code> belongs to.
-   */
+  /** The {@link AudioDevice} that this <code>AudioLet</code> belongs to. */
   public final AudioDevice device;
   
-  /**
-   * The system-assigned index of this <code>AudioLet</code>. Only used for internal tracking.
-   */
+  /** The system-assigned index of this <code>AudioLet</code>. Only used for internal tracking. */
   private final int index;
   
-  /**
-   * The index of the first channel in this let. Used for configuring the channel map.
-   */
+  /** The index of the first channel in this let. Used for configuring the channel map. */
   private final int channelIndex;
   
   /**
@@ -55,14 +49,10 @@ public class AudioLet {
    */
   public final String name;
   
-  /**
-   * If this let is an input or output.
-   */
+  /** If this let is an input or output. */
   public final boolean isInput;
   
-  /**
-   * The number of channels associated with this let.
-   */
+  /** The number of channels associated with this let. */
   public final int numChannels;
   
   private final Set<Float> availableSamplerates;
@@ -105,6 +95,7 @@ public class AudioLet {
     return numChannels;
   }
   
+  /** Returns the <code>FloatBuffer</code> containing samples for the given channel index. */
   public FloatBuffer getChannelBuffer(int channelIndex) {
     return buffers[channelIndex];
   }
@@ -123,7 +114,7 @@ public class AudioLet {
   }
   
   /**
-   * Returns <code>true</code> if the <code>AudioDevice</code> supportes the given sample rate.
+   * Returns <code>true</code> if the <code>AudioDevice</code> supports the given sample rate.
    * Otherwise <code>false</code>.
    */
   public boolean canSamplerate(float samplerate) {
@@ -142,14 +133,15 @@ public class AudioLet {
     if (o == null) return false;
     if (o instanceof AudioLet) {
       AudioLet l = (AudioLet) o;
-      return (l.device.getId() == device.getId()) && (l.index == this.index) && (l.isInput == this.isInput);
+      return (l.device.getId() == device.getId()) && (l.index == this.index) &&
+          (l.isInput == this.isInput);
     } else return false;
   }
   
   @Override
   public int hashCode() {
-    // TODO(mhroth): use a correct hash code
-    return (isInput ? 1 : -1) * (index+1);
+    // NOTE(mhroth): this hash will work as long as devices have less than 64 lets
+    return (isInput ? 1 : -1) * (64*device.getId() + index+1);
   }
 
 }

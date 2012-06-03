@@ -24,6 +24,7 @@ package ch.section6.jcoreaudio;
 import java.nio.FloatBuffer;
 import java.util.Set;
 
+@Deprecated
 public class CoreAudioAdapter implements CoreAudioListener {
   
   private long idx = 0;

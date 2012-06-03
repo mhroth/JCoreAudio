@@ -33,39 +33,25 @@ import java.util.Set;
  */
 public class JCoreAudio {
   
-  /**
-   * 
-   */
-  private static JCoreAudio jcoreaudio;
+  /** The singleton instance of <code>JCoreAudio</code>. */
+  public static final JCoreAudio jcoreaudio;
   
-  /**
-   * 
-   */
+  /** The current Core Audio state. */
   private CoreAudioState state;
   
-  /**
-   * 
-   */
+  /** The currently used input <code>AudioDevice</code>. Only valid if Core Audio is at least INITIALIZED. */
   private AudioDevice currentInputDevice;
   
-  /**
-   * 
-   */
+  /** The currently used output <code>AudioDevice</code>. Only valid if Core Audio is at least INITIALIZED. */
   private AudioDevice currentOutputDevice;
   
-  /**
-   * 
-   */
-  private Set<AudioLet> currentInputLets;
+  /** The currently used input <code>AudioLet</code>s. */
+  private final Set<AudioLet> currentInputLets;
   
-  /**
-   * 
-   */
-  private Set<AudioLet> currentOutputLets;
+  /** The currently used output <code>AudioLet</code>s. */
+  private final Set<AudioLet> currentOutputLets;
   
-  /**
-   * 
-   */
+  /** The currently registered <code>CoreAudioListener</code>. */
   private CoreAudioListener listener;
   
   /** A reference to the native data structure belonging to this object. */
@@ -74,11 +60,14 @@ public class JCoreAudio {
   
   static {
     System.loadLibrary("JCoreAudio");
+    jcoreaudio = new JCoreAudio(); // create the singleton instance of JCoreAudio
   }
   
   private JCoreAudio() {
     state = CoreAudioState.UNINITIALIZED;
     nativePtr = 0;
+    currentInputLets = new HashSet<AudioLet>();
+    currentOutputLets = new HashSet<AudioLet>();
   }
   
   @Override
@@ -91,10 +80,7 @@ public class JCoreAudio {
     }
   }
   
-  /**
-   * Returns the singleton instance of <code>JCoreAudio</code> if one exists. <code>null</code>
-   * otherwise.
-   */
+  /** Returns the singleton instance of <code>JCoreAudio</code>. */
   public static JCoreAudio getInstance() {
     return jcoreaudio;
   }
@@ -112,22 +98,6 @@ public class JCoreAudio {
   private static native void fillAudioDeviceList(List<AudioDevice> list);
   
   /**
-   * A convenience method for initializing Core Audio with default block size and sample rate.
-   * Sample rate can be manually changed using the OS X Audio MIDI Setup application.
-   */
-  public static synchronized JCoreAudio initialize(Set<AudioLet> inputLets, Set<AudioLet> outputLets) {
-    int defaultBlockSize = 512; // NOTE(mhroth): default for now
-    float defaultSampleRate = 0.0f;
-    if (inputLets != null && !inputLets.isEmpty()) {
-      defaultSampleRate = inputLets.iterator().next().getAudioDevice().getCurrentSampleRate();
-    } else if (outputLets != null && !outputLets.isEmpty()) {
-      defaultSampleRate = outputLets.iterator().next().getAudioDevice().getCurrentSampleRate();
-    }
-    
-    return initialize(inputLets, outputLets, defaultBlockSize, defaultSampleRate);
-  }
-  
-  /**
    * 
    * @param inputLets  A Set of AudioLets to use as input. May be <code>null</code> or an empty set.
    * @param outputLets  A Set of AudioLets to use as output. May be <code>null</code> or an empty set.
@@ -138,9 +108,9 @@ public class JCoreAudio {
    *     <code>AudioDevice.getAllowedSampleRates()</code>. When in doubt, use
    *     <code>AudioDevice.getCurrentSampleRate()</code>.
    */
-  public static synchronized JCoreAudio initialize(Set<AudioLet> inputLets, Set<AudioLet> outputLets,
+  public synchronized JCoreAudio initialize(Set<AudioLet> inputLets, Set<AudioLet> outputLets,
       int blockSize, float sampleRate) {
-    if (jcoreaudio != null) {
+    if (state != CoreAudioState.UNINITIALIZED) {
       throw new IllegalStateException();
     }
     if (!verifyLetSet(inputLets)) {
@@ -152,13 +122,12 @@ public class JCoreAudio {
     if ((inputLets == null || inputLets.isEmpty()) && (outputLets == null || outputLets.isEmpty())) {
       throw new IllegalArgumentException("At least one of the input or output sets must be non-empty.");
     }
-    
-    jcoreaudio = new JCoreAudio();
-    
+
+    int inputDeviceId = 0;
     int numInputChannels = 0;
+    currentInputLets.clear();
     if (inputLets == null || inputLets.isEmpty()) {
-      jcoreaudio.currentInputLets = null;
-      jcoreaudio.currentInputDevice = null;
+      currentInputDevice = null;
     } else {
       AudioDevice device = inputLets.iterator().next().device;
       if (blockSize < device.getMinimumBufferSize()) {
@@ -175,19 +144,21 @@ public class JCoreAudio {
           		"It must be one of " + let.getAvailableSamplerates().toString() + "Hz.");
         }
       }
-      jcoreaudio.currentInputDevice = device;
+      currentInputDevice = device;
+      inputDeviceId = device.getId();
       
       // defensive copy of letset
-      jcoreaudio.currentInputLets = new HashSet<AudioLet>(inputLets);
-      for (AudioLet let : jcoreaudio.currentInputLets) {
+      currentInputLets.addAll(inputLets);
+      for (AudioLet let : currentInputLets) {
         numInputChannels += let.numChannels;
       }
     }
     
+    int outputDeviceId = 0;
     int numOutputChannels = 0;
+    currentOutputLets.clear();
     if (outputLets == null || outputLets.isEmpty()) {
-      jcoreaudio.currentOutputLets = null;
-      jcoreaudio.currentOutputDevice = null;
+      currentOutputDevice = null;
     } else {
       AudioDevice device = outputLets.iterator().next().device;
       if (blockSize < device.getMinimumBufferSize()) {
@@ -204,21 +175,20 @@ public class JCoreAudio {
               "It must be one of: " + let.getAvailableSamplerates().toString());
         }
       }
-      jcoreaudio.currentOutputDevice = device;
+      currentOutputDevice = device;
+      outputDeviceId = device.getId();
       
-      jcoreaudio.currentOutputLets = new HashSet<AudioLet>(outputLets);
-      for (AudioLet let : jcoreaudio.currentOutputLets) {
+      currentOutputLets.addAll(outputLets);
+      for (AudioLet let : currentOutputLets) {
         numOutputChannels += let.numChannels;
       }
     }
-    jcoreaudio.nativePtr = initialize(
-        (jcoreaudio.currentInputLets == null) ? null : jcoreaudio.currentInputLets.toArray(), numInputChannels,
-        (jcoreaudio.currentInputDevice == null) ? 0 : jcoreaudio.currentInputDevice.getId(),
-        (jcoreaudio.currentOutputLets == null) ? null : jcoreaudio.currentOutputLets.toArray(), numOutputChannels,
-        (jcoreaudio.currentOutputDevice == null) ? 0 : jcoreaudio.currentOutputDevice.getId(),
+    nativePtr = initialize(
+        currentInputLets.toArray(), numInputChannels, inputDeviceId,
+        currentOutputLets.toArray(), numOutputChannels, outputDeviceId,
         blockSize, sampleRate);
     
-    jcoreaudio.state = CoreAudioState.INITIALIZED;
+    state = CoreAudioState.INITIALIZED;
     
     return jcoreaudio;
   }
@@ -244,18 +214,20 @@ public class JCoreAudio {
   
   public synchronized void uninitialize() {
     switch (state) {
-      case RUNNING: {
-        pause(); // allow fallthrough
-      }
+      case RUNNING: pause(); // allow fallthrough
       case INITIALIZED: {
         uninitialize(nativePtr);
+        nativePtr = 0;
+        currentInputLets.clear();
+        currentOutputLets.clear();
+        currentInputDevice = null;
+        currentOutputDevice = null;
         state = CoreAudioState.UNINITIALIZED;
         break;
       }
       default:
       case UNINITIALIZED: break; // nothing to do
     }
-    jcoreaudio = null;
   }
   private static native void uninitialize(long nativePtr);
   
@@ -267,45 +239,37 @@ public class JCoreAudio {
     return currentOutputDevice;
   }
   
+  /** The currently used input <code>AudioLet</code>s. The return value is never <code>null</code>. */
   public synchronized Set<AudioLet> getCurrentInputLets() {
     return new HashSet<AudioLet>(currentInputLets);
   }
   
+  /** The currently used output <code>AudioLet</code>s. The return value is never <code>null</code>. */
   public synchronized Set<AudioLet> getCurrentOutputLets() {
     return new HashSet<AudioLet>(currentOutputLets);
   }
   
-  /**
-   * Returns the current <code>CoreAudioState</code>.
-   */
+  /** Returns the current <code>CoreAudioState</code>. */
   public CoreAudioState getState() {
     return state;
   }
   
-  /**
-   * Indicates if CoreAudio is currently playing.
-   */
+  /** Indicates if CoreAudio is currently playing. */
   public synchronized boolean isPlaying() {
     return state == CoreAudioState.RUNNING;
   }
   
-  /**
-   * Indicates if JCoreAudio is initialised. The current state may thus be INITIALIZED or RUNNING.
-   */
+  /** Indicates if JCoreAudio is initialised. The current state may thus be INITIALIZED or RUNNING. */
   public boolean isInitialized() {
     return (state == CoreAudioState.INITIALIZED || state == CoreAudioState.RUNNING);
   }
   
-  /**
-   * Indicates of JCoreAudio is uninitialized.
-   */
+  /** Indicates of JCoreAudio is uninitialized. */
   public boolean isUninitialized() {
     return (state == CoreAudioState.UNINITIALIZED);
   }
   
-  /**
-   * Start or resume playback.
-   */
+  /** Start or resume playback. */
   public synchronized void play() {
     if (state == CoreAudioState.RUNNING) return; // already running, nothing to do
     if (state == CoreAudioState.UNINITIALIZED) {
@@ -318,9 +282,7 @@ public class JCoreAudio {
   }
   private static native void play(boolean shouldPlay, long ptr);
   
-  /**
-   * Pause playback.
-   */
+  /** Pause playback. */
   public synchronized void pause() {
     if (state != CoreAudioState.RUNNING) return;
     state = CoreAudioState.INITIALIZED;
