@@ -3,12 +3,29 @@ JCoreAudio is a Java interface to Apple's [Core Audio](http://developer.apple.co
 * [JAsioHost](https://github.com/mhroth/jasiohost): a low-latency interface to ASIO on Windows
 * [FrogDisco](https://github.com/mhroth/FrogDisco): a low-latency interface to Core Audio with a simpler API
 
-## Getting Started
+## Example
+This example shows how to configure JCoreAudio and receive audio callbacks. It is a synopsis of the code found in [ExampleJca](https://github.com/section6/JCoreAudio/blob/master/src/ch/section6/jcoreaudio/ExampleJca.java).
+
 ```Java
-AudioDevice outputDevice = audioDeviceList.get(2);
+/*
+ * Obtain a list of all audio devices attached to this system.
+ * Printing this list looks something like this on a typical MacBook Pro:
+ *
+ * Audio Device 51: Built-in Microphone by Apple Inc.
+ * Audio Device 42: Built-in Input by Apple Inc.
+ * Audio Device 34: Built-in Output by Apple Inc.
+ */
+List<AudioDevice> audioDeviceList = JCoreAudio.getAudioDeviceList();
+
+// Assemble a set of input/output lets (collections of channels) to provide input and output.
+// Some lets are mono (one audio channel), and some are stereo (two channels), but any number
+// is possible.
 Set<AudioLet> inputSet = audioDeviceList.get(0).getInputSet();
-Set<AudioLet> outputSet = outputDevice.getOutputSet();
-    
+Set<AudioLet> outputSet = audioDeviceList.get(2).getOutputSet();
+
+// Configure JCoreAudio with the input and output let sets (one or the other may also be null.
+// A block size of 512 is used, along with the current sample rate. The current sample rate is
+// the same as that reported by the Audio MIDI Setup application.
 JCoreAudio.getInstance().initialize(inputSet, outputSet, 512,
     outputDevice.getCurrentSampleRate());
     
