@@ -24,11 +24,12 @@ package ch.section6.jcoreaudio;
 import java.nio.FloatBuffer;
 import java.util.Set;
 
-@Deprecated
+/**
+ * <code>CoreAudioAdapter</code> implements default methods for the <code>CoreAudioListener</code>.
+ * @author Martin Roth (mhroth@gmail.com)
+ */
 public class CoreAudioAdapter implements CoreAudioListener {
-  
-  private long idx = 0;
-  
+
   @Override
   public void onCoreAudioInput(double timestamp, Set<AudioLet> inputLets) {
     // nothing to do
@@ -36,18 +37,6 @@ public class CoreAudioAdapter implements CoreAudioListener {
 
   @Override
   public void onCoreAudioOutput(double timestamp, Set<AudioLet> outputLets) {
-    // plays a 440Hz tone
-    int blockSize = 0;
-    AudioLet let = outputLets.iterator().next();
-    for (int i = 0; i < let.numChannels; i++) {
-      FloatBuffer buffer = let.getChannelBuffer(i);
-      buffer.rewind();
-      blockSize = buffer.capacity();
-      long toIdx = idx + blockSize;
-      for (long j = idx; j < toIdx; j++) { // buffer.getCapacity()
-        buffer.put((float) Math.sin(2.0 * Math.PI * j * 440.0 / 44100.0));
-      }
-    }
-    idx += blockSize;
+    // nothing to do
   }
 }

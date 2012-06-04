@@ -27,9 +27,9 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * 
+ * JCoreAudio is an interface to the OS X Core Audio API. It allows attached audio devices to be
+ * configured for input and output, and to receive audio callbacks.
  * @author Martin Roth (mhroth@gmail.com)
- *
  */
 public class JCoreAudio {
   
@@ -98,15 +98,42 @@ public class JCoreAudio {
   private static native void fillAudioDeviceList(List<AudioDevice> list);
   
   /**
-   * 
-   * @param inputLets  A Set of AudioLets to use as input. May be <code>null</code> or an empty set.
-   * @param outputLets  A Set of AudioLets to use as output. May be <code>null</code> or an empty set.
+   * Initialize <code>JCoreAudio</code> with the given input and output <code>AudioLet</code>s.
+   *     Default buffer size and sample rate are chosen based on the current values of the selected
+   *     devices.
+   * @param inputLets  A <code>Set</code> of <code>AudioLets</code> to use as input.
+   *     May be <code>null</code> or an empty set.
+   * @param outputLets  A <code>Set</code> of <code>AudioLets</code> to use as output.
+   *     May be <code>null</code> or an empty set.
+   * @return  Returns the singleton <code>JCoreAudio</code> object.
+   */
+  public synchronized JCoreAudio initialize(Set<AudioLet> inputLets, Set<AudioLet> outputLets) {
+    AudioDevice device = null;
+    if (outputLets != null && !outputLets.isEmpty()) {
+      device = outputLets.iterator().next().getAudioDevice();
+    } else if (inputLets!= null && !inputLets.isEmpty()) {
+      device = inputLets.iterator().next().getAudioDevice();
+    } else {
+      throw new IllegalArgumentException("Arguments inputLets and outputLets may not both simultaneously " +
+      		"be null or empty.");
+    }
+    return initialize(inputLets, outputLets,  device.getCurrentBufferSize(), device.getCurrentSampleRate());
+  }
+  
+  /**
+   * Initialize JCoreAudio with the given input and output <code>AudioLet</code>s. Block size and
+   *     sample rate are also configured.
+   * @param inputLets  A <code>Set</code> of <code>AudioLets</code> to use as input.
+   *     May be <code>null</code> or an empty set.
+   * @param outputLets  A <code>Set</code> of <code>AudioLets</code> to use as output.
+   *     May be <code>null</code> or an empty set.
    * @param blockSize  The requested block size. It must be between the limits allowed by
    *     <code>AudioDevice.getMinimumBlockSize()</code> and <code>AudioDevice.getMaximumBlockSize()</code>.
    *     When in doubt, use <code>AudioDevice.getCurrentBufferSize()</code>.
    * @param sampleRate  The requested sample rate. It must be one of the sample rates allowed by
    *     <code>AudioDevice.getAllowedSampleRates()</code>. When in doubt, use
    *     <code>AudioDevice.getCurrentSampleRate()</code>.
+   * @return  Returns the singleton <code>JCoreAudio</code> object.
    */
   public synchronized JCoreAudio initialize(Set<AudioLet> inputLets, Set<AudioLet> outputLets,
       int blockSize, float sampleRate) {
@@ -276,6 +303,9 @@ public class JCoreAudio {
       throw new IllegalStateException("JCoreAudio must be in the INITIALIZED state to start playback. " +
       		"It is currently UNINITIALIZED.");
     }
+    if (listener == null) {
+      throw new IllegalStateException("A CoreAudioListener must be registered before beginning playback.");
+    }
     state = CoreAudioState.RUNNING;
     
     play(true, nativePtr);
@@ -316,6 +346,7 @@ public class JCoreAudio {
     state = newState;
   }
   
+  /** Sets a new <code>CoreAudioListener</code>. Only one listener may be registered at a time. */
   public synchronized void setListener(CoreAudioListener listener) {
     this.listener = listener;
   }
