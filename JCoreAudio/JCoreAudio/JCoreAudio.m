@@ -222,6 +222,17 @@ JNIEXPORT void JNICALL Java_ch_section6_jcoreaudio_AudioLet_queryAvailableSample
   }
 }
 
+JNIEXPORT jint JNICALL Java_ch_section6_jcoreaudio_AudioDevice_getCurrentBufferSize
+    (JNIEnv *env, jclass jclazz, jint jaudioDeviceId) {
+  
+  UInt32 bufferSize = 0;
+  UInt32 propSize = sizeof(UInt32);
+  AudioDeviceGetProperty(jaudioDeviceId, 0, false,
+       kAudioDevicePropertyBufferFrameSize, &propSize, &bufferSize);
+
+  return bufferSize;
+}
+
 JNIEXPORT jint JNICALL Java_ch_section6_jcoreaudio_AudioDevice_getMinimumBufferSize
     (JNIEnv *env, jclass jclazz, jint jaudioDeviceId) {
 
@@ -244,7 +255,7 @@ JNIEXPORT jint JNICALL Java_ch_section6_jcoreaudio_AudioDevice_getMaximumBufferS
   return (jint) range.mMaximum;
 }
 
-JNIEXPORT jfloat JNICALL Java_ch_section6_jcoreaudio_AudioDevice_getSampleRate
+JNIEXPORT jfloat JNICALL Java_ch_section6_jcoreaudio_AudioDevice_getCurrentSampleRate
     (JNIEnv *env, jclass jclazz, jint jaudioDeviceId) {
   
   Float64 sampleRate = 0.0;

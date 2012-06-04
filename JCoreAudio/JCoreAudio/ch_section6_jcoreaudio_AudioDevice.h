@@ -44,7 +44,7 @@ JNIEXPORT jint JNICALL Java_ch_section6_jcoreaudio_AudioDevice_getMaximumBufferS
  * Method:    getSampleRate
  * Signature: (I)F
  */
-JNIEXPORT jfloat JNICALL Java_ch_section6_jcoreaudio_AudioDevice_getSampleRate
+JNIEXPORT jfloat JNICALL Java_ch_section6_jcoreaudio_AudioDevice_getCurrentSampleRate
   (JNIEnv *, jclass, jint);
 
 #ifdef __cplusplus

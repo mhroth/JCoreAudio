@@ -111,9 +111,9 @@ public class AudioDevice {
    * by using the OS X Audio MIDI Setup application.
    */
   public float getCurrentSampleRate() {
-    return getSampleRate(id);
+    return getCurrentSampleRate(id);
   }
-  private static native float getSampleRate(int id);
+  private static native float getCurrentSampleRate(int id);
   
   @Override
   public String toString() {

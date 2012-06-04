@@ -39,7 +39,8 @@ public class ExampleJca {
     Set<AudioLet> inputSet = audioDeviceList.get(0).getInputSet();
     Set<AudioLet> outputSet = outputDevice.getOutputSet();
     
-    JCoreAudio.getInstance().initialize(inputSet, outputSet, 512,
+    JCoreAudio.getInstance().initialize(inputSet, outputSet,
+        outputDevice.getCurrentBufferSize(),
         outputDevice.getCurrentSampleRate());
     
     // set the callback listener
