@@ -11,7 +11,7 @@ JCA comes in two parts, [JCoreAudio.jar]() and [libJCoreAudio.jnilib](). The for
 The library can be quickly tested from the root directory of the project with `java -jar JCoreAudio.jar -Djava.library.path=./`. You should hear a two second 440Hz tone.
 
 + Include `JCoreAudio.jar` in your Java project.
-+ Make `libJcoreAudio.jnilib` available to your project. This can be done in several ways:
++ Make `libJCoreAudio.jnilib` available to your project. This can be done in several ways:
   + Move or copy the library to `/Library/Java/Extensions`. This is the default search location for JNI libraries.
   + Inform the JVM where the library is located. This can be done with, e.g. `java -Djava.library.path=/Library/Java/Extensions`
 
