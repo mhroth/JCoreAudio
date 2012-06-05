@@ -47,6 +47,7 @@ JCoreAudio.getInstance().initialize(
     outputDevice.getCurrentSampleRate());
     
 // set the callback listener
+// a listener MUST be registered before play() is called.
 JCoreAudio.getInstance().setListener(new CoreAudioListener() {
   private long idx = 0;
 
