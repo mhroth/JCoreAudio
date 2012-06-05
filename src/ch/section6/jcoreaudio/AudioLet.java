@@ -57,7 +57,8 @@ public class AudioLet {
   
   private final Set<Float> availableSamplerates;
   
-  private FloatBuffer[] buffers;
+  private FloatBuffer[] floatBuffers;
+  private ByteBuffer[] byteBuffers;
   
   private AudioLet(AudioDevice device, int index, int channelIndex, String name, boolean isInput, int numChannels) {
     this.device = device;
@@ -66,7 +67,8 @@ public class AudioLet {
     this.name = (name == null) ? "" : name;
     this.isInput = isInput;
     this.numChannels = numChannels;
-    buffers = new FloatBuffer[numChannels];
+    floatBuffers = new FloatBuffer[numChannels];
+    byteBuffers = new ByteBuffer[numChannels];
     
     availableSamplerates = new HashSet<Float>();
     queryAvailableSamplerates(device.getId(), index, isInput, availableSamplerates);
@@ -95,14 +97,23 @@ public class AudioLet {
     return numChannels;
   }
   
+  /**
+   * Returns the <code>ByteBuffer</code> containing samples for the given channel index.
+   * Note that the underlying bytes represent 32-bit <code>float</code>s.
+   */
+  public ByteBuffer getChannelByteBuffer(int channelIndex) {
+    return byteBuffers[channelIndex];
+  }
+  
   /** Returns the <code>FloatBuffer</code> containing samples for the given channel index. */
-  public FloatBuffer getChannelBuffer(int channelIndex) {
-    return buffers[channelIndex];
+  public FloatBuffer getChannelFloatBuffer(int channelIndex) {
+    return floatBuffers[channelIndex];
   }
   
   private void setChannelBuffer(int channelIndex, ByteBuffer buffer) {
     // set the endianness of the ByteBuffer, otherwise the samples are not correctly represented
-    buffers[channelIndex] = buffer.order(ByteOrder.nativeOrder()).asFloatBuffer();
+    byteBuffers[channelIndex] = buffer.order(ByteOrder.nativeOrder());
+    floatBuffers[channelIndex] = byteBuffers[channelIndex].asFloatBuffer();
   }
   
   private int getChannelIndex() {

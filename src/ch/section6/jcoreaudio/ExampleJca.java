@@ -58,7 +58,7 @@ public class ExampleJca {
         int blockSize = 0;
         AudioLet let = outputLets.iterator().next();
         for (int i = 0; i < let.numChannels; i++) {
-          FloatBuffer buffer = let.getChannelBuffer(i);
+          FloatBuffer buffer = let.getChannelFloatBuffer(i);
           buffer.rewind();
           blockSize = buffer.capacity();
           long toIdx = idx + blockSize;
@@ -106,7 +106,7 @@ public class ExampleJca {
         int blockSize = 0;
         AudioLet let = outputLets.iterator().next();
         for (int i = 0; i < let.numChannels; i++) {
-          FloatBuffer buffer = let.getChannelBuffer(i);
+          FloatBuffer buffer = let.getChannelFloatBuffer(i);
           buffer.rewind();
           blockSize = buffer.capacity();
           long toIdx = idx + blockSize;
