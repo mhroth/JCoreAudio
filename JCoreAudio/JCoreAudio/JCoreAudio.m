@@ -286,6 +286,8 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
   // initialise to known values
   jcaStruct->auhalInput = NULL;
   jcaStruct->auhalOutput = NULL;
+  jcaStruct->numChannelsInput = 0;
+  jcaStruct->numChannelsOutput = 0;
   OSStatus err = noErr;
     
   // create an AUHAL (for 10.6 and later)
@@ -307,9 +309,10 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
   AudioHardwareSetProperty(kAudioHardwarePropertyRunLoop, sizeof(CFRunLoopRef), NULL);
     
   if (jinputDeviceId != 0) {
-    // the intput set is non-empty. Configure the AUHAL to be in the graph and provide input
+    // the intput set is non-empty. Configure the input AUHAL.
     
-    AudioComponentInstanceNew(comp, &(jcaStruct->auhalInput)); // open the component and initialise it (10.6 and later)
+    // open the component and initialise it (10.6 and later)
+    AudioComponentInstanceNew(comp, &(jcaStruct->auhalInput));
     
     // enable input on the AUHAL
     UInt32 enableIO = 1;
@@ -380,17 +383,33 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
         kAudioUnitProperty_StreamFormat,
         kAudioUnitScope_Input, 1,
         &asbd, &propSize);
+    
+    // make sure that the expected audio format is reported
+    if (asbd.mFormatFlags != (kAudioFormatFlagIsFloat | kAudioFormatFlagIsPacked) ||
+        asbd.mBitsPerChannel != 32) {
+
+      // clean up
+      Java_ch_section6_jcoreaudio_JCoreAudio_uninitialize(env, jclazz, (jlong) jcaStruct);
+      
+      // throw an IllegalStateException
+      (*env)->ThrowNew(env, (*env)->FindClass(env, "java/lang/IllegalStateException"),
+          "Core Audio is not reporting the expected 32-bit interleaved float audio format for the input. "
+          "There is nothing that you can do. Report this error along with the audio hardware that you are using to the author.");
+      return 0;
+    }
+    
+    asbd.mFormatFlags |= kAudioFormatFlagIsNonInterleaved;
     asbd.mSampleRate = (Float64) jsampleRate; // update the sample rate    
     AudioUnitSetProperty(jcaStruct->auhalInput,
         kAudioUnitProperty_StreamFormat,
         kAudioUnitScope_Output, 1,
         &asbd, sizeof(AudioStreamBasicDescription));
-    
+
     // set the device sample rate
     Float64 sampleRate = (Float64) jsampleRate;
-    AudioDeviceSetProperty(jinputDeviceId, NULL, 0, true,
+    AudioDeviceSetProperty(jinputDeviceId, NULL, 0, false,
         kAudioDevicePropertyNominalSampleRate, sizeof(Float64), &sampleRate);
-    
+
     // set requested block size
     AudioUnitSetProperty(jcaStruct->auhalInput,
         kAudioDevicePropertyBufferFrameSize,
@@ -399,14 +418,13 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
     
     // now that the AUHAL is set up, initialise it
     AudioUnitInitialize(jcaStruct->auhalInput);
-  } else {
-    jcaStruct->numChannelsInput = 0;
   }
 
   if (joutputDeviceId != 0) {
-    // the output set is non-empty. Configure the AUHAL to be in the graph and provide output
+    // the output set is non-empty. Configure the output AUHAL.
 
-    AudioComponentInstanceNew(comp, &(jcaStruct->auhalOutput)); // open the component and initialise it (10.6 and later)
+    // open the component and initialise it (10.6 and later)
+    AudioComponentInstanceNew(comp, &(jcaStruct->auhalOutput));
     
     // disable input on the AUHAL
     UInt32 enableIO = 0;
@@ -477,12 +495,27 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
         kAudioUnitProperty_StreamFormat,
         kAudioUnitScope_Output, 0,
         &asbd, &propSize);
+    
+    // make sure that the expected audio format is reported
+    if (asbd.mFormatFlags != (kAudioFormatFlagIsFloat | kAudioFormatFlagIsPacked) ||
+        asbd.mBitsPerChannel != 32) {
+      
+      // clean up
+      Java_ch_section6_jcoreaudio_JCoreAudio_uninitialize(env, jclazz, (jlong) jcaStruct);
+      
+      // throw an IllegalStateException
+      (*env)->ThrowNew(env, (*env)->FindClass(env, "java/lang/IllegalStateException"),
+          "Core Audio is not reporting the expected 32-bit interleaved float audio format for the output. "
+          "There is nothing that you can do. Report this error along with the audio hardware that you are using to the author.");
+      return 0;
+    }
+    
     asbd.mSampleRate = (Float64) jsampleRate; // update the sample rate    
     AudioUnitSetProperty(jcaStruct->auhalOutput,
         kAudioUnitProperty_StreamFormat,
         kAudioUnitScope_Input, 0,
         &asbd, sizeof(AudioStreamBasicDescription));
-    
+
     // set the device sample rate
     Float64 sampleRate = (Float64) jsampleRate;
     AudioDeviceSetProperty(joutputDeviceId, NULL, 0, false,
@@ -496,8 +529,6 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
     
     // now that the AUHAL is set up, initialise it
     AudioUnitInitialize(jcaStruct->auhalOutput);
-  } else {
-    jcaStruct->numChannelsOutput = 0;
   }
     
   return (jlong) jcaStruct;
