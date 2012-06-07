@@ -46,13 +46,11 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved) {
   // require JNI_VERSION_1_4 for access to NIO functions
   // http://docs.oracle.com/javase/1.4.2/docs/guide/jni/jni-14.html
   JCoreAudio_globalJvm = jvm; // store the JVM so that it can be used to attach CoreAudio threads to the JVM during callbacks
-  
-  JNIEnv *env = NULL;
-  (*jvm)->GetEnv(jvm, (void **) &env, JNI_VERSION_1_4);
-  
+
   return JNI_VERSION_1_4;
 }
 
+// render callback for input AUHAL
 OSStatus inputRenderCallback(void *inRefCon, AudioUnitRenderActionFlags *ioActionFlags,
     const AudioTimeStamp *inTimeStamp, UInt32 inBusNumber, UInt32 inNumberFrames, AudioBufferList *ioData) {
   
@@ -180,7 +178,8 @@ JNIEXPORT void JNICALL Java_ch_section6_jcoreaudio_AudioDevice_queryLetSet
     
     // create a new AudioChannel object
     jobject jAudioLet = (*env)->NewObject(env, jclazzAudioLet,
-        (*env)->GetMethodID(env, jclazzAudioLet, "<init>", "(Lch/section6/jcoreaudio/AudioDevice;IILjava/lang/String;ZI)V"),
+        (*env)->GetMethodID(env, jclazzAudioLet, "<init>",
+            "(Lch/section6/jcoreaudio/AudioDevice;IILjava/lang/String;ZI)V"),
         jobj, j, channelIndex, (*env)->NewStringUTF(env, strADName),
         isInput, buffLetList[j].mBuffers[0].mNumberChannels);
     
@@ -343,14 +342,17 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
     for (int i = 0, k = 0; i < (*env)->GetArrayLength(env, jinputArray); i++) {
       // get the number of channels in this let
       jobject objAudioLet = (*env)->GetObjectArrayElement(env, jinputArray, i);
-      int numChannels = (*env)->CallIntMethod(env, objAudioLet, (*env)->GetMethodID(env, jclazzAudioLet, "getNumChannels", "()I"));
-      int channelIndex = (*env)->CallIntMethod(env, objAudioLet, (*env)->GetMethodID(env, jclazzAudioLet, "getChannelIndex", "()I"));
+      int numChannels = (*env)->CallIntMethod(env, objAudioLet,
+          (*env)->GetMethodID(env, jclazzAudioLet, "getNumChannels", "()I"));
+      int channelIndex = (*env)->CallIntMethod(env, objAudioLet,
+          (*env)->GetMethodID(env, jclazzAudioLet, "getChannelIndex", "()I"));
       for (int j = 0; j < numChannels; j++, k++, channelIndex++) {
         // create the native backing buffer
         jcaStruct->channelsInput[k] = (float *) calloc(jblockSize, sizeof(float));
         
         // create a new ByteBuffer
-        jobject jByteBuffer = (*env)->NewDirectByteBuffer(env, jcaStruct->channelsInput[k], jblockSize*sizeof(float));
+        jobject jByteBuffer = (*env)->NewDirectByteBuffer(
+            env, jcaStruct->channelsInput[k], jblockSize*sizeof(float));
         
         // assign ByteBuffer to channel
         (*env)->CallVoidMethod(env, objAudioLet,
@@ -393,8 +395,9 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
       
       // throw an IllegalStateException
       (*env)->ThrowNew(env, (*env)->FindClass(env, "java/lang/IllegalStateException"),
-          "Core Audio is not reporting the expected 32-bit interleaved float audio format for the input. "
-          "There is nothing that you can do. Report this error along with the audio hardware that you are using to the author.");
+          "Core Audio is not reporting the expected interleaved 32-bit float audio format for the input. "
+          "There is nothing that you can do. Report this error along with the audio hardware that you "
+          "are using to the maintainer.");
       return 0;
     }
     
@@ -455,14 +458,17 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
     for (int i = 0, k = 0; i < (*env)->GetArrayLength(env, joutputArray); i++) {
       // get the number of channels in this let
       jobject objAudioLet = (*env)->GetObjectArrayElement(env, joutputArray, i);
-      int numChannels = (*env)->CallIntMethod(env, objAudioLet, (*env)->GetMethodID(env, jclazzAudioLet, "getNumChannels", "()I"));
-      int channelIndex = (*env)->CallIntMethod(env, objAudioLet, (*env)->GetMethodID(env, jclazzAudioLet, "getChannelIndex", "()I"));
+      int numChannels = (*env)->CallIntMethod(env, objAudioLet,
+          (*env)->GetMethodID(env, jclazzAudioLet, "getNumChannels", "()I"));
+      int channelIndex = (*env)->CallIntMethod(env, objAudioLet,
+          (*env)->GetMethodID(env, jclazzAudioLet, "getChannelIndex", "()I"));
       for (int j = 0; j < numChannels; j++, k++, channelIndex++) {
         // create the native backing buffer
         jcaStruct->channelsOutput[k] = (float *) calloc(jblockSize, sizeof(float));
         
         // create a new ByteBuffer
-        jobject jByteBuffer = (*env)->NewDirectByteBuffer(env, jcaStruct->channelsOutput[k], jblockSize*sizeof(float));
+        jobject jByteBuffer = (*env)->NewDirectByteBuffer(
+            env, jcaStruct->channelsOutput[k], jblockSize*sizeof(float));
         
         // assign ByteBuffer to channel
         (*env)->CallVoidMethod(env, objAudioLet,
@@ -505,8 +511,9 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
       
       // throw an IllegalStateException
       (*env)->ThrowNew(env, (*env)->FindClass(env, "java/lang/IllegalStateException"),
-          "Core Audio is not reporting the expected 32-bit interleaved float audio format for the output. "
-          "There is nothing that you can do. Report this error along with the audio hardware that you are using to the author.");
+          "Core Audio is not reporting the expected interleaved 32-bit float audio format for the output. "
+          "There is nothing that you can do. Report this error along with the audio hardware that you "
+          "are using to the library maintiner.");
       return 0;
     }
     
