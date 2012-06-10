@@ -28,6 +28,7 @@ import java.util.Set;
  * <code>CoreAudioAdapter</code> implements default methods for the <code>CoreAudioListener</code>.
  * @author Martin Roth (mhroth@gmail.com)
  */
+@SuppressWarnings("unused")
 public class CoreAudioAdapter implements CoreAudioListener {
 
   @Override
