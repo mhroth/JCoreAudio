@@ -26,14 +26,14 @@ import java.util.Set;
 public interface CoreAudioListener {
    
   /**
-   * 
+   * This callback is called when new audio input is available.
    * @param timestamp  The time in samples at the beginning of the block.
    * @param inputLets  The set of input AudioLets with which Core Audio was initialized.
    */
   public void onCoreAudioInput(double timestamp, Set<AudioLet> inputLets);
   
   /**
-   * 
+   * This callback is called when new audio output is required.
    * @param timestamp  The time in samples at the beginning of the block.
    * @param outputLets  The set of output AudioLets with which Core Audio was initialized.
    */

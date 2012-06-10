@@ -117,7 +117,7 @@ public class AudioDevice {
   
   @Override
   public String toString() {
-    return "Audio Device " + id + ": " + name + " by " + manufacturer + ".";
+    return "Audio Device " + id + ": " + name + " by " + manufacturer;
   }
   
   @Override

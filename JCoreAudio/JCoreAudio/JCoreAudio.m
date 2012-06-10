@@ -197,7 +197,7 @@ JNIEXPORT void JNICALL Java_ch_section6_jcoreaudio_AudioLet_queryAvailableSample
   
   jclass jclazzFloat = (*env)->FindClass(env, "java/lang/Float");
   jclass jclazzHashSet = (*env)->FindClass(env, "java/util/HashSet");
-      
+
   UInt32 propSize = 0;
   AudioDeviceGetPropertyInfo(deviceId, letIndex, isInput,
       kAudioDevicePropertyStreamFormats, &propSize, NULL);
@@ -223,11 +223,14 @@ JNIEXPORT void JNICALL Java_ch_section6_jcoreaudio_AudioLet_queryAvailableSample
 
 JNIEXPORT jint JNICALL Java_ch_section6_jcoreaudio_AudioDevice_getCurrentBufferSize
     (JNIEnv *env, jclass jclazz, jint jaudioDeviceId) {
-  
+
+  AudioObjectPropertyAddress propAddr;
+  propAddr.mSelector = kAudioDevicePropertyBufferFrameSize;
+  propAddr.mScope = kAudioUnitScope_Input;
+  propAddr.mElement = 0;
   UInt32 bufferSize = 0;
   UInt32 propSize = sizeof(UInt32);
-  AudioDeviceGetProperty(jaudioDeviceId, 0, false,
-       kAudioDevicePropertyBufferFrameSize, &propSize, &bufferSize);
+  AudioObjectGetPropertyData(jaudioDeviceId, &propAddr, 0, NULL, &propSize, &bufferSize);
 
   return bufferSize;
 }
@@ -235,32 +238,41 @@ JNIEXPORT jint JNICALL Java_ch_section6_jcoreaudio_AudioDevice_getCurrentBufferS
 JNIEXPORT jint JNICALL Java_ch_section6_jcoreaudio_AudioDevice_getMinimumBufferSize
     (JNIEnv *env, jclass jclazz, jint jaudioDeviceId) {
 
+  AudioObjectPropertyAddress propAddr;
+  propAddr.mSelector = kAudioDevicePropertyBufferFrameSizeRange;
+  propAddr.mScope = kAudioUnitScope_Input;
+  propAddr.mElement = 0;
   AudioValueRange range;
   UInt32 propSize = sizeof(AudioValueRange);
-  AudioDeviceGetProperty(jaudioDeviceId, 0, false,
-      kAudioDevicePropertyBufferFrameSizeRange, &propSize, &range);
-      
+  AudioObjectGetPropertyData(jaudioDeviceId, &propAddr, 0, NULL, &propSize, &range);
+
   return (jint) range.mMinimum;
 }
 
 JNIEXPORT jint JNICALL Java_ch_section6_jcoreaudio_AudioDevice_getMaximumBufferSize
     (JNIEnv *env, jclass jclazz, jint jaudioDeviceId) {
-      
+
+  AudioObjectPropertyAddress propAddr;
+  propAddr.mSelector = kAudioDevicePropertyBufferFrameSizeRange;
+  propAddr.mScope = kAudioUnitScope_Input;
+  propAddr.mElement = 0;
   AudioValueRange range;
   UInt32 propSize = sizeof(AudioValueRange);
-  AudioDeviceGetProperty(jaudioDeviceId, 0, false,
-      kAudioDevicePropertyBufferFrameSizeRange, &propSize, &range);
+  AudioObjectGetPropertyData(jaudioDeviceId, &propAddr, 0, NULL, &propSize, &range);
 
   return (jint) range.mMaximum;
 }
 
 JNIEXPORT jfloat JNICALL Java_ch_section6_jcoreaudio_AudioDevice_getCurrentSampleRate
     (JNIEnv *env, jclass jclazz, jint jaudioDeviceId) {
-  
+      
+  AudioObjectPropertyAddress propAddr;
+  propAddr.mSelector = kAudioDevicePropertyNominalSampleRate;
+  propAddr.mScope = kAudioUnitScope_Input;
+  propAddr.mElement = 0;
   Float64 sampleRate = 0.0;
   UInt32 propSize = sizeof(Float64);
-  AudioDeviceGetProperty(jaudioDeviceId, 0, false,
-      kAudioDevicePropertyNominalSampleRate, &propSize, &sampleRate);
+  AudioObjectGetPropertyData(jaudioDeviceId, &propAddr, 0, NULL, &propSize, &sampleRate);
 
   return (jfloat) sampleRate;
 }
@@ -409,9 +421,12 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
         &asbd, sizeof(AudioStreamBasicDescription));
 
     // set the device sample rate
+    AudioObjectPropertyAddress propAddr;
+    propAddr.mSelector = kAudioDevicePropertyNominalSampleRate;
+    propAddr.mScope = kAudioUnitScope_Global;
+    propAddr.mElement = 0;
     Float64 sampleRate = (Float64) jsampleRate;
-    AudioDeviceSetProperty(jinputDeviceId, NULL, 0, false,
-        kAudioDevicePropertyNominalSampleRate, sizeof(Float64), &sampleRate);
+    AudioObjectSetPropertyData(jinputDeviceId, &propAddr, 0, NULL, sizeof(Float64), &sampleRate);
 
     // set requested block size
     AudioUnitSetProperty(jcaStruct->auhalInput,
@@ -524,9 +539,12 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
         &asbd, sizeof(AudioStreamBasicDescription));
 
     // set the device sample rate
+    AudioObjectPropertyAddress propAddr;
+    propAddr.mSelector = kAudioDevicePropertyNominalSampleRate;
+    propAddr.mScope = kAudioUnitScope_Global;
+    propAddr.mElement = 0;
     Float64 sampleRate = (Float64) jsampleRate;
-    AudioDeviceSetProperty(joutputDeviceId, NULL, 0, false,
-        kAudioDevicePropertyNominalSampleRate, sizeof(Float64), &sampleRate);
+    AudioObjectSetPropertyData(joutputDeviceId, &propAddr, 0, NULL, sizeof(Float64), &sampleRate);
 
     // set requested block size
     AudioUnitSetProperty(jcaStruct->auhalOutput,
