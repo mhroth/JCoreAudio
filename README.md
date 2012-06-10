@@ -56,6 +56,12 @@ JCoreAudio.getInstance().setListener(new CoreAudioListener() {
     // nothing to do
   }
 
+  /*
+   * It isn't really intended for you to loop through the outputLets Set as shown here. Typically which
+   * AudioLet objects are associated with which channels are known ahead of time (from initialisation),
+   * stored in the CoreAudioListener class, and used directly when onCoreAudioOutput is called. Such
+   * an approach is also more efficient.
+   */
   @Override
   public void onCoreAudioOutput(double timestamp, Set<AudioLet> outputLets) {
     // plays a 440Hz tone
