@@ -66,7 +66,6 @@ OSStatus inputRenderCallback(void *inRefCon, AudioUnitRenderActionFlags *ioActio
       bufferList->mBuffers[i].mNumberChannels = 1;
       bufferList->mBuffers[i].mDataByteSize = jca->blockSize * sizeof(float);
       bufferList->mBuffers[i].mData = alloca(bufferList->mBuffers[0].mDataByteSize);
-      memset(bufferList->mBuffers[i].mData, 0, bufferList->mBuffers[i].mDataByteSize);
     }
     
     AudioUnitRender(jca->auhalInput, ioActionFlags, inTimeStamp, inBusNumber,
@@ -193,14 +192,17 @@ JNIEXPORT void JNICALL Java_ch_section6_jcoreaudio_AudioLet_queryAvailableSample
   
   jclass jclazzFloat = (*env)->FindClass(env, "java/lang/Float");
   jclass jclazzHashSet = (*env)->FindClass(env, "java/util/HashSet");
+      
+  AudioObjectPropertyAddress propAddr;
+  propAddr.mSelector = kAudioDevicePropertyStreamFormats;
+  propAddr.mScope = isInput ? kAudioUnitScope_Input : kAudioUnitScope_Output;
+  propAddr.mElement = letIndex;
 
   UInt32 propSize = 0;
-  AudioDeviceGetPropertyInfo(deviceId, letIndex, isInput,
-      kAudioDevicePropertyStreamFormats, &propSize, NULL);
+  AudioObjectGetPropertyDataSize(deviceId, &propAddr, 0, NULL, &propSize);
   int numFormats = propSize/sizeof(AudioStreamBasicDescription);
   AudioStreamBasicDescription formats[numFormats]; memset(formats, 0, propSize);
-  AudioDeviceGetProperty(deviceId, letIndex, isInput,
-      kAudioDevicePropertyStreamFormats, &propSize, formats);
+  AudioObjectGetPropertyData(deviceId, &propAddr, 0, NULL, &propSize, formats);
       
   for (int i = 0; i < numFormats; i++) {
     AudioStreamBasicDescription asbd = formats[i];
