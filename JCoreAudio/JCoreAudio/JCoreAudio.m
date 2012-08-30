@@ -40,7 +40,7 @@ typedef struct JCoreAudioStruct {
   int blockSize;
 } JCoreAudioStruct;
 
-JavaVM *JCoreAudio_globalJvm;
+JavaVM *JCoreAudio_globalJvm = nil;
 
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved) {
   // require JNI_VERSION_1_4 for access to NIO functions
@@ -59,25 +59,21 @@ OSStatus inputRenderCallback(void *inRefCon, AudioUnitRenderActionFlags *ioActio
   if (res == JNI_OK) {
     JCoreAudioStruct *jca = (JCoreAudioStruct *) inRefCon;
     
-    AudioBufferList bufferList;
-    bufferList.mNumberBuffers = 1;
-    AudioBuffer audioBuffer;
-    audioBuffer.mNumberChannels = jca->numChannelsInput;
-    audioBuffer.mDataByteSize = jca->blockSize * jca->numChannelsInput * sizeof(float);
-    float caBuffer[jca->blockSize * jca->numChannelsInput];
-    audioBuffer.mData = caBuffer;
-    bufferList.mBuffers[0] = audioBuffer;
- 
-    // render the input into the buffers
-    AudioUnitRender(jca->auhalInput, ioActionFlags, inTimeStamp, inBusNumber,
-        inNumberFrames, &bufferList);
+    AudioBufferList *bufferList =
+        (AudioBufferList *) alloca(sizeof(AudioBufferList) + (sizeof(AudioBuffer)*(jca->numChannelsInput-1)));
+    bufferList->mNumberBuffers = jca->numChannelsInput;
+    for (int i = 0; i < jca->numChannelsInput; ++i) {
+      bufferList->mBuffers[i].mNumberChannels = 1;
+      bufferList->mBuffers[i].mDataByteSize = jca->blockSize * sizeof(float);
+      bufferList->mBuffers[i].mData = alloca(bufferList->mBuffers[0].mDataByteSize);
+      memset(bufferList->mBuffers[i].mData, 0, bufferList->mBuffers[i].mDataByteSize);
+    }
     
-    // interleave the channels to the backing buffers
-    // TODO(mhroth): vectorise this like a real man, ok?
-    for (int i = 0; i < jca->numChannelsInput; i++) {
-      for (int j = 0, k = i; j < jca->blockSize; j++, k+=jca->numChannelsInput) {
-        jca->channelsInput[i][j] = caBuffer[k];
-      }
+    AudioUnitRender(jca->auhalInput, ioActionFlags, inTimeStamp, inBusNumber,
+        inNumberFrames, bufferList);
+    
+    for (int i = 0; i < jca->numChannelsInput; ++i) {
+      memcpy(jca->channelsInput[i], bufferList->mBuffers[i].mData, bufferList->mBuffers[i].mDataByteSize);
     }
 
     // make audio callback to Java and fill the byte buffers
@@ -226,7 +222,7 @@ JNIEXPORT jint JNICALL Java_ch_section6_jcoreaudio_AudioDevice_getCurrentBufferS
 
   AudioObjectPropertyAddress propAddr;
   propAddr.mSelector = kAudioDevicePropertyBufferFrameSize;
-  propAddr.mScope = kAudioUnitScope_Input;
+  propAddr.mScope = kAudioUnitScope_Global;
   propAddr.mElement = 0;
   UInt32 bufferSize = 0;
   UInt32 propSize = sizeof(UInt32);
@@ -240,7 +236,7 @@ JNIEXPORT jint JNICALL Java_ch_section6_jcoreaudio_AudioDevice_getMinimumBufferS
 
   AudioObjectPropertyAddress propAddr;
   propAddr.mSelector = kAudioDevicePropertyBufferFrameSizeRange;
-  propAddr.mScope = kAudioUnitScope_Input;
+  propAddr.mScope = kAudioUnitScope_Global;
   propAddr.mElement = 0;
   AudioValueRange range;
   UInt32 propSize = sizeof(AudioValueRange);
@@ -254,7 +250,7 @@ JNIEXPORT jint JNICALL Java_ch_section6_jcoreaudio_AudioDevice_getMaximumBufferS
 
   AudioObjectPropertyAddress propAddr;
   propAddr.mSelector = kAudioDevicePropertyBufferFrameSizeRange;
-  propAddr.mScope = kAudioUnitScope_Input;
+  propAddr.mScope = kAudioUnitScope_Global;
   propAddr.mElement = 0;
   AudioValueRange range;
   UInt32 propSize = sizeof(AudioValueRange);
@@ -268,7 +264,7 @@ JNIEXPORT jfloat JNICALL Java_ch_section6_jcoreaudio_AudioDevice_getCurrentSampl
       
   AudioObjectPropertyAddress propAddr;
   propAddr.mSelector = kAudioDevicePropertyNominalSampleRate;
-  propAddr.mScope = kAudioUnitScope_Input;
+  propAddr.mScope = kAudioUnitScope_Global;
   propAddr.mElement = 0;
   Float64 sampleRate = 0.0;
   UInt32 propSize = sizeof(Float64);
@@ -277,7 +273,6 @@ JNIEXPORT jfloat JNICALL Java_ch_section6_jcoreaudio_AudioDevice_getCurrentSampl
   return (jfloat) sampleRate;
 }
 
-// file:///Users/mhroth/Library/Developer/Shared/Documentation/DocSets/com.apple.adc.documentation.AppleLion.CoreReference.docset/Contents/Resources/Documents/index.html#technotes/tn2091/_index.html
 JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
   (JNIEnv *env, jclass jclazz, jarray jinputArray, jint jnumChannelsInput, jint jinputDeviceId,
       jarray joutputArray, jint jnumChannelsOutput, jint joutputDeviceId,
@@ -356,8 +351,11 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
       jobject objAudioLet = (*env)->GetObjectArrayElement(env, jinputArray, i);
       int numChannels = (*env)->CallIntMethod(env, objAudioLet,
           (*env)->GetMethodID(env, jclazzAudioLet, "getNumChannels", "()I"));
+      
+      // get the starting channel index of this let
       int channelIndex = (*env)->CallIntMethod(env, objAudioLet,
           (*env)->GetMethodID(env, jclazzAudioLet, "getChannelIndex", "()I"));
+      
       for (int j = 0; j < numChannels; j++, k++, channelIndex++) {
         // create the native backing buffer
         jcaStruct->channelsInput[k] = (float *) calloc(jblockSize, sizeof(float));
@@ -417,7 +415,7 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
     asbd.mSampleRate = (Float64) jsampleRate; // update the sample rate    
     AudioUnitSetProperty(jcaStruct->auhalInput,
         kAudioUnitProperty_StreamFormat,
-        kAudioUnitScope_Output, 1,
+        kAudioUnitScope_Output, 0,
         &asbd, sizeof(AudioStreamBasicDescription));
 
     // set the device sample rate
