@@ -57,8 +57,11 @@ public class AudioLet {
   
   private final Set<Float> availableSamplerates;
   
-  private FloatBuffer[] floatBuffers;
+  /** An array containing this let's buffers. */
   private ByteBuffer[] byteBuffers;
+  
+  /** An array containing this let's buffers, represented as <code>FloatBuffer</code>s. */
+  private FloatBuffer[] floatBuffers;
   
   private AudioLet(AudioDevice device, int index, int channelIndex, String name, boolean isInput, int numChannels) {
     this.device = device;
@@ -116,6 +119,7 @@ public class AudioLet {
     floatBuffers[channelIndex] = byteBuffers[channelIndex].asFloatBuffer();
   }
   
+  /** Returns the index of the first channel in this let. Used for configuring the channel map. */
   private int getChannelIndex() {
     return channelIndex;
   }
