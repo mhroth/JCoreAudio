@@ -622,7 +622,7 @@ JNIEXPORT void JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_play
   
   JCoreAudioStruct *jcaStruct = (JCoreAudioStruct *) nativePtr;
       
-  if (shouldPlay) {
+  if (shouldPlay == JNI_TRUE) {
     if (jcaStruct->auhalInput != NULL) AudioOutputUnitStart(jcaStruct->auhalInput);
     if (jcaStruct->auhalOutput != NULL) AudioOutputUnitStart(jcaStruct->auhalOutput);
   } else {
