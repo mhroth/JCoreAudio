@@ -65,7 +65,7 @@ OSStatus inputRenderCallback(void *inRefCon, AudioUnitRenderActionFlags *ioActio
     for (int i = 0; i < jca->numChannelsInput; ++i) {
       bufferList->mBuffers[i].mNumberChannels = 1;
       bufferList->mBuffers[i].mDataByteSize = jca->blockSize * sizeof(float);
-      bufferList->mBuffers[i].mData = alloca(bufferList->mBuffers[0].mDataByteSize);
+      bufferList->mBuffers[i].mData = alloca(bufferList->mBuffers[i].mDataByteSize);
       memset(bufferList->mBuffers[i].mData, 0, bufferList->mBuffers[i].mDataByteSize);
     }
     
@@ -108,6 +108,7 @@ OSStatus outputRenderCallback(void *inRefCon, AudioUnitRenderActionFlags *ioActi
   return noErr; // everything is gonna be ok
 }
 
+// https://developer.apple.com/library/mac/#technotes/tn2010/tn2223.html
 JNIEXPORT void JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_fillAudioDeviceList
     (JNIEnv *env, jclass jclazz, jobject jlist) {
   
