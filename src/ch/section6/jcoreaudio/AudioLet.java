@@ -89,6 +89,7 @@ public class AudioLet {
     return isInput;
   }
   
+  /** Returns the {@link AudioDevice} to which this <code>AudioLet</code> is associated. */
   public AudioDevice getAudioDevice() {
     return device;
   }
