@@ -117,26 +117,32 @@ JNIEXPORT void JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_fillAudioDeviceLis
       
   // get number of AudioDevices
   UInt32 arraySize;
-  AudioHardwareGetPropertyInfo(kAudioHardwarePropertyDevices, &arraySize, NULL);
+  AudioObjectPropertyAddress aopa = {
+    kAudioHardwarePropertyDevices,
+    kAudioObjectPropertyScopeGlobal,
+    kAudioObjectPropertyElementMaster
+  };
+  AudioObjectGetPropertyDataSize(kAudioObjectSystemObject, &aopa, 0, NULL, &arraySize);
   int numAudioDevices = arraySize/sizeof(AudioDeviceID);
   AudioDeviceID audioDeviceIds[numAudioDevices];
-  AudioHardwareGetProperty(kAudioHardwarePropertyDevices, &arraySize, audioDeviceIds);
+      
+  // get AudioDevice information
+  AudioObjectGetPropertyData(kAudioObjectSystemObject, &aopa, 0, NULL, &arraySize, audioDeviceIds);
       
   for (int i = 0; i < numAudioDevices; i++) {
-    // get name string
     UInt32 propSize = 0;
-    AudioDeviceGetPropertyInfo(audioDeviceIds[i], 0, false,
-        kAudioDevicePropertyDeviceName, &propSize, NULL);
-    char strName[++propSize]; memset(strName, 0, sizeof(strName)); // ensure that string is zero terminated
-    AudioDeviceGetProperty(audioDeviceIds[i], 0, false,
-        kAudioDevicePropertyDeviceName, &propSize, strName);
+    
+    // get name string
+    aopa.mSelector = kAudioDevicePropertyDeviceName;
+    AudioObjectGetPropertyDataSize(audioDeviceIds[i], &aopa, 0, NULL, &propSize);
+    char strName[propSize];
+    AudioObjectGetPropertyData(audioDeviceIds[i], &aopa, 0, NULL, &propSize, strName);
     
     // get manufacturer string
-    AudioDeviceGetPropertyInfo(audioDeviceIds[i], 0, false,
-        kAudioDevicePropertyDeviceManufacturer, &propSize, NULL);
-    char strManufacturer[++propSize]; memset(strManufacturer, 0, sizeof(strManufacturer));
-    AudioDeviceGetProperty(audioDeviceIds[i], 0, false,
-        kAudioDevicePropertyDeviceManufacturer, &propSize, strManufacturer);
+    aopa.mSelector = kAudioDevicePropertyDeviceManufacturer;
+    AudioObjectGetPropertyDataSize(audioDeviceIds[i], &aopa, 0, NULL, &propSize);
+    char strManufacturer[propSize];
+    AudioObjectGetPropertyData(audioDeviceIds[i], &aopa, 0, NULL, &propSize, strManufacturer);
     
     // create the AudioDevice object
     jobject jAudioDevice = (*env)->NewObject(env, jclazzAudioDevice,
@@ -160,17 +166,27 @@ JNIEXPORT void JNICALL Java_ch_section6_jcoreaudio_AudioDevice_queryLetSet
       
   // get the number of channels that this AudioDevice has
   UInt32 propSize = 0;
-  AudioDeviceGetPropertyInfo(deviceId, 0, isInput,
-      kAudioDevicePropertyStreamConfiguration, &propSize, NULL);
+
+  AudioObjectPropertyAddress aopa = {
+      kAudioDevicePropertyStreamConfiguration,
+      (isInput == JNI_TRUE) ? kAudioDevicePropertyScopeInput : kAudioDevicePropertyScopeOutput,
+      kAudioObjectPropertyElementMaster
+  };
+  AudioObjectGetPropertyDataSize(deviceId, &aopa, 0, NULL, &propSize);
   int numLets  = propSize/sizeof(AudioBufferList);
   AudioBufferList buffLetList[numLets];
-  AudioDeviceGetProperty(deviceId, 0, isInput,
-      kAudioDevicePropertyStreamConfiguration, &propSize, buffLetList);
+  AudioObjectGetPropertyData(deviceId, &aopa, 0, NULL, &propSize, buffLetList);
   
   int channelIndex = 0;
   for (int j = 0; j < numLets; j++) {
-    AudioDeviceGetPropertyInfo(deviceId, j, isInput, kAudioDevicePropertyChannelName, &propSize, NULL);
-    char strADName[++propSize]; memset(strADName, 0, sizeof(strADName));
+    propSize = 0;
+    aopa.mSelector = kAudioDevicePropertyChannelName;
+    aopa.mElement = j;
+    AudioObjectGetPropertyDataSize(deviceId, &aopa, 0, NULL, &propSize);
+    char strADName[propSize]; memset(strADName, 0, sizeof(strADName));
+    
+    // NOTE(mhroth): why does the newer function not work?
+    // AudioObjectGetPropertyData(deviceId, &aopa, 0, NULL, &propSize, strADName);
     AudioDeviceGetProperty(deviceId, j, isInput, kAudioDevicePropertyChannelName, &propSize, strADName);
     
     // create a new AudioChannel object
@@ -196,12 +212,16 @@ JNIEXPORT void JNICALL Java_ch_section6_jcoreaudio_AudioLet_queryAvailableSample
   jclass jclazzHashSet = (*env)->FindClass(env, "java/util/HashSet");
 
   UInt32 propSize = 0;
-  AudioDeviceGetPropertyInfo(deviceId, letIndex, isInput,
-      kAudioDevicePropertyStreamFormats, &propSize, NULL);
+      
+  AudioObjectPropertyAddress aopa = {
+    kAudioDevicePropertyStreamFormats,
+    (isInput == JNI_TRUE) ? kAudioDevicePropertyScopeInput : kAudioDevicePropertyScopeOutput,
+    letIndex
+  };
+  AudioObjectGetPropertyDataSize(deviceId, &aopa, 0, NULL, &propSize);      
   int numFormats = propSize/sizeof(AudioStreamBasicDescription);
   AudioStreamBasicDescription formats[numFormats]; memset(formats, 0, propSize);
-  AudioDeviceGetProperty(deviceId, letIndex, isInput,
-      kAudioDevicePropertyStreamFormats, &propSize, formats);
+  AudioObjectGetPropertyData(deviceId, &aopa, 0, NULL, &propSize, formats);
       
   for (int i = 0; i < numFormats; i++) {
     AudioStreamBasicDescription asbd = formats[i];
@@ -313,7 +333,12 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
   // http://osdir.com/ml/coreaudio-api/2009-10/msg01790.html
   // Tell the AudioDevice to use its own runloop. This allows it to react autonomously to
   // sample rate changes.
-  AudioHardwareSetProperty(kAudioHardwarePropertyRunLoop, sizeof(CFRunLoopRef), NULL);
+  AudioObjectPropertyAddress aopa = {
+    kAudioHardwarePropertyRunLoop,
+    kAudioObjectPropertyScopeGlobal,
+    kAudioObjectPropertyElementMaster
+  };
+  AudioObjectSetPropertyData(kAudioObjectSystemObject, &aopa, 0, NULL, sizeof(CFRunLoopRef), NULL);
     
   if (jinputDeviceId != 0) {
     // the intput set is non-empty. Configure the input AUHAL.
@@ -377,7 +402,8 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
     // set the channel map
     AudioUnitSetProperty(jcaStruct->auhalInput,
         kAudioOutputUnitProperty_ChannelMap,
-        kAudioUnitScope_Output, 1,
+        //kAudioUnitScope_Output, 1,
+        kAudioUnitScope_Input, 0,
         channelMap, jnumChannelsInput);
     
     // register audio callback
@@ -527,7 +553,7 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
       (*env)->ThrowNew(env, (*env)->FindClass(env, "java/lang/IllegalStateException"),
           "Core Audio is not reporting the expected interleaved 32-bit float audio format for the output. "
           "There is nothing that you can do. Report this error along with the audio hardware that you "
-          "are using to the library maintiner.");
+          "are using to the library maintainer.");
       return 0;
     }
     
