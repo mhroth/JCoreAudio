@@ -29,7 +29,8 @@ import java.util.Set;
 
 /**
  * An <code>AudioLet</code> represents an individual audio input or output. Each i/o has a number
- * of channels associated with it, usually one (mono) or two (stereo).
+ * of channels associated with it, usually one (mono) or two (stereo). Core Audio also refers to
+ * this as a <i>stream</i>.
  * @author Martin Roth (mhroth@gmail.com)
  */
 public class AudioLet {
