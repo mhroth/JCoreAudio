@@ -40,8 +40,10 @@ public class AudioDevice {
   /** The system-assigned identifier of this device. */
   public final int id;
   
+  /** A set of all available input lets. */
   private final Set<AudioLet> inputLetSet;
   
+  /** A set of all available output lets. */
   private final Set<AudioLet> outputLetSet;
   
   private AudioDevice(int id, String name, String manufacturer) {
