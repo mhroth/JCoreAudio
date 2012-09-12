@@ -173,13 +173,15 @@ JNIEXPORT void JNICALL Java_ch_section6_jcoreaudio_AudioDevice_queryLetSet
       kAudioObjectPropertyElementMaster
   };
   AudioObjectGetPropertyDataSize(deviceId, &aopa, 0, NULL, &propSize);
-  int numLets  = propSize/sizeof(AudioBufferList);
+  int numLets = propSize/sizeof(AudioBufferList);
   AudioBufferList buffLetList[numLets];
   AudioObjectGetPropertyData(deviceId, &aopa, 0, NULL, &propSize, buffLetList);
   
+  // NOTE(mhroth): without setting this, the program crashes... weird!
+  numLets = buffLetList[0].mNumberBuffers;
+      
   int channelIndex = 0;
   for (int j = 0; j < numLets; j++) {
-    propSize = 0;
     aopa.mSelector = kAudioDevicePropertyChannelName;
     aopa.mElement = j;
     AudioObjectGetPropertyDataSize(deviceId, &aopa, 0, NULL, &propSize);
@@ -194,14 +196,14 @@ JNIEXPORT void JNICALL Java_ch_section6_jcoreaudio_AudioDevice_queryLetSet
         (*env)->GetMethodID(env, jclazzAudioLet, "<init>",
             "(Lch/section6/jcoreaudio/AudioDevice;IILjava/lang/String;ZI)V"),
         jobj, j, channelIndex, (*env)->NewStringUTF(env, strADName),
-        isInput, buffLetList[j].mBuffers[0].mNumberChannels);
+        isInput, buffLetList[0].mBuffers[j].mNumberChannels);
     
     // add the AudioChannel to the inputSet
     (*env)->CallVoidMethod(env, jset,
         (*env)->GetMethodID(env, jclazzHashSet, "add", "(Ljava/lang/Object;)Z"),
         jAudioLet);
     
-    channelIndex += buffLetList[j].mBuffers[0].mNumberChannels;
+    channelIndex += buffLetList[0].mBuffers[j].mNumberChannels;
   }
 }
 
