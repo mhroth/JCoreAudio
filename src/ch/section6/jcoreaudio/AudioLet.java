@@ -140,7 +140,7 @@ public class AudioLet {
 
   @Override
   public String toString() {
-    return "AudioLet " + name + " : " + 
+    return "AudioLet@" + channelIndex + " " + name + " : " + 
         ((numChannels == 1) ? "mono " : (numChannels == 2) ? "stereo " : numChannels + " ") + 
         (isInput ? "input" : "output") + ".";
   }
