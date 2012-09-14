@@ -404,9 +404,8 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
     // set the channel map
     AudioUnitSetProperty(jcaStruct->auhalInput,
         kAudioOutputUnitProperty_ChannelMap,
-        //kAudioUnitScope_Output, 1,
-        kAudioUnitScope_Input, 0,
-        channelMap, jnumChannelsInput);
+        kAudioUnitScope_Output, 1,
+        channelMap, sizeof(channelMap));
     
     // register audio callback
     AURenderCallbackStruct renderCallbackStruct;
@@ -420,15 +419,28 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
     // configure output device to given sample rate
     AudioStreamBasicDescription asbd;
     UInt32 propSize = sizeof(AudioStreamBasicDescription);
-    AudioUnitGetProperty (jcaStruct->auhalInput,
+    asbd.mBitsPerChannel = sizeof(float) * 8;
+    asbd.mBytesPerFrame = jcaStruct->numChannelsOutput * sizeof(float);
+    asbd.mBytesPerPacket = asbd.mBytesPerFrame;
+    asbd.mChannelsPerFrame = jcaStruct->numChannelsOutput;
+    asbd.mFormatFlags = kAudioFormatFlagsNativeFloatPacked;
+    asbd.mFormatID = kAudioFormatLinearPCM;
+    asbd.mFramesPerPacket = 1;
+    asbd.mReserved = 0;
+    asbd.mSampleRate = (Float64) jsampleRate;
+    AudioUnitSetProperty(jcaStruct->auhalInput,
+        kAudioUnitProperty_StreamFormat,
+        kAudioUnitScope_Input, 1,
+        &asbd, propSize);
+    
+    // make sure that the expected audio format is reported
+    AudioUnitGetProperty(jcaStruct->auhalInput,
         kAudioUnitProperty_StreamFormat,
         kAudioUnitScope_Input, 1,
         &asbd, &propSize);
-    
-    // make sure that the expected audio format is reported
-    if (asbd.mFormatFlags != (kAudioFormatFlagIsFloat | kAudioFormatFlagIsPacked) ||
+    if (asbd.mFormatFlags != kAudioFormatFlagsNativeFloatPacked ||
         asbd.mBitsPerChannel != 32) {
-
+      
       // clean up
       Java_ch_section6_jcoreaudio_JCoreAudio_uninitialize(env, jclazz, (jlong) jcaStruct);
       
@@ -436,16 +448,9 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
       (*env)->ThrowNew(env, (*env)->FindClass(env, "java/lang/IllegalStateException"),
           "Core Audio is not reporting the expected interleaved 32-bit float audio format for the input. "
           "There is nothing that you can do. Report this error along with the audio hardware that you "
-          "are using to the maintainer.");
+          "are using to the library maintainer.");
       return 0;
     }
-    
-    asbd.mFormatFlags |= kAudioFormatFlagIsNonInterleaved;
-    asbd.mSampleRate = (Float64) jsampleRate; // update the sample rate    
-    AudioUnitSetProperty(jcaStruct->auhalInput,
-        kAudioUnitProperty_StreamFormat,
-        kAudioUnitScope_Output, 0,
-        &asbd, sizeof(AudioStreamBasicDescription));
 
     // set the device sample rate
     AudioObjectPropertyAddress propAddr;
@@ -517,6 +522,7 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
             (*env)->GetMethodID(env, jclazzAudioLet, "setChannelBuffer", "(ILjava/nio/ByteBuffer;)V"),
             j, jByteBuffer);
         
+        // configure the channel map
         channelMap[k] = channelIndex;
       }
     }
@@ -525,7 +531,7 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
     AudioUnitSetProperty(jcaStruct->auhalOutput,
         kAudioOutputUnitProperty_ChannelMap,
         kAudioUnitScope_Input, 0,
-        channelMap, jnumChannelsOutput);
+        channelMap, sizeof(channelMap));
     
     // register audio callback
     AURenderCallbackStruct renderCallbackStruct;
@@ -536,16 +542,29 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
         kAudioUnitScope_Global, 0,
         &renderCallbackStruct, sizeof(AURenderCallbackStruct));
     
-    // configure output device to given sample rate
+    // configure output device work with floating-point samples and the given sample rate
     AudioStreamBasicDescription asbd;
     UInt32 propSize = sizeof(AudioStreamBasicDescription);
-    AudioUnitGetProperty (jcaStruct->auhalOutput,
+    asbd.mBitsPerChannel = sizeof(float) * 8;
+    asbd.mBytesPerFrame = jcaStruct->numChannelsOutput * sizeof(float);
+    asbd.mBytesPerPacket = asbd.mBytesPerFrame;
+    asbd.mChannelsPerFrame = jcaStruct->numChannelsOutput;
+    asbd.mFormatFlags = kAudioFormatFlagsNativeFloatPacked;
+    asbd.mFormatID = kAudioFormatLinearPCM;
+    asbd.mFramesPerPacket = 1;
+    asbd.mReserved = 0;
+    asbd.mSampleRate = (Float64) jsampleRate;
+    AudioUnitSetProperty(jcaStruct->auhalOutput,
         kAudioUnitProperty_StreamFormat,
-        kAudioUnitScope_Output, 0,
-        &asbd, &propSize);
+        kAudioUnitScope_Input, 0,
+        &asbd, propSize);
     
     // make sure that the expected audio format is reported
-    if (asbd.mFormatFlags != (kAudioFormatFlagIsFloat | kAudioFormatFlagIsPacked) ||
+    AudioUnitGetProperty(jcaStruct->auhalOutput,
+        kAudioUnitProperty_StreamFormat,
+        kAudioUnitScope_Input, 0,
+        &asbd, &propSize);
+    if (asbd.mFormatFlags != kAudioFormatFlagsNativeFloatPacked ||
         asbd.mBitsPerChannel != 32) {
       
       // clean up
@@ -559,12 +578,6 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
       return 0;
     }
     
-    asbd.mSampleRate = (Float64) jsampleRate; // update the sample rate    
-    AudioUnitSetProperty(jcaStruct->auhalOutput,
-        kAudioUnitProperty_StreamFormat,
-        kAudioUnitScope_Input, 0,
-        &asbd, sizeof(AudioStreamBasicDescription));
-
     // set the device sample rate
     AudioObjectPropertyAddress propAddr;
     propAddr.mSelector = kAudioDevicePropertyNominalSampleRate;
@@ -578,7 +591,7 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
         kAudioDevicePropertyBufferFrameSize,
         kAudioUnitScope_Input, 0,
         &jblockSize, sizeof(UInt32));
-    
+
     // now that the AUHAL is set up, initialise it
     AudioUnitInitialize(jcaStruct->auhalOutput);
   }
