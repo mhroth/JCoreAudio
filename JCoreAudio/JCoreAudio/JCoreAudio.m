@@ -69,6 +69,7 @@ OSStatus inputRenderCallback(void *inRefCon, AudioUnitRenderActionFlags *ioActio
       memset(bufferList->mBuffers[i].mData, 0, bufferList->mBuffers[i].mDataByteSize);
     }
     
+    // render the input into the AudioBufferList
     AudioUnitRender(jca->auhalInput, ioActionFlags, inTimeStamp, inBusNumber,
         inNumberFrames, bufferList);
     
@@ -76,7 +77,7 @@ OSStatus inputRenderCallback(void *inRefCon, AudioUnitRenderActionFlags *ioActio
       memcpy(jca->channelsInput[i], bufferList->mBuffers[i].mData, bufferList->mBuffers[i].mDataByteSize);
     }
 
-    // make audio callback to Java and fill the byte buffers
+    // make audio callback to Java with the new input
     (*env)->CallStaticVoidMethod(env, jca->jclazzJCoreAudio, jca->fireOnCoreAudioInputMid, inTimeStamp->mSampleTime);
   }
   
@@ -109,6 +110,7 @@ OSStatus outputRenderCallback(void *inRefCon, AudioUnitRenderActionFlags *ioActi
 }
 
 // https://developer.apple.com/library/mac/#technotes/tn2010/tn2223.html
+// http://developer.apple.com/library/mac/#technotes/tn2091/_index.html
 JNIEXPORT void JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_fillAudioDeviceList
     (JNIEnv *env, jclass jclazz, jobject jlist) {
   
