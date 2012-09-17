@@ -157,18 +157,36 @@ public class JCoreAudio {
       currentInputDevice = null;
     } else {
       AudioDevice device = inputLets.iterator().next().device;
-      if (blockSize < device.getMinimumBufferSize()) {
+      if (device.getMinimumBufferSize() == 0) {
+        System.err.println("WARNING (JCoreAudio): The minimum buffer size of " + device.getName() +
+            " is reported as zero. This is an indication that the device is not responding correctly " +
+            "to the Core Audio API. It may be necessary to adjust the device's settings using a " +
+            "proprietary control panel or the Audio Midi Setup application.");
+      } else if (blockSize < device.getMinimumBufferSize()) {
         throw new IllegalArgumentException("The given blocksize is less than the minimum supported amount: " +
             blockSize +  " < " + device.getMinimumBufferSize());
       }
-      if (blockSize > device.getMaximumBufferSize()) {
+      if (device.getMaximumBufferSize() == 0) {
+        System.err.println("WARNING (JCoreAudio): The maximum buffer size of " + device.getName() +
+            " is reported as zero. This is an indication that the device is not responding correctly " +
+            "to the Core Audio API. It may be necessary to adjust the device's settings using a " +
+            "proprietary control panel or the Audio Midi Setup application.");
+      } else if (blockSize > device.getMaximumBufferSize()) {
         throw new IllegalArgumentException("The given blocksize is greater than the maximum supported amount: " +
             blockSize +  " < " + device.getMaximumBufferSize());
       }
-      for (AudioLet let : inputLets) {
-        if (!let.canSamplerate(sampleRate)) {
-          throw new IllegalArgumentException("The requested sample rate " + sampleRate + "Hz is not supported. " +
-          		"It must be one of " + let.getAvailableSamplerates().toString() + "Hz.");
+      if (sampleRate == 0) {
+        System.err.println("WARNING (JCoreAudio): A sample rate of zero is requested. If you got " +
+            "this value from getCurrentSampleRate(), this is an indication that the device is not responding correctly " +
+            "to the Core Audio API. It may be necessary to adjust the device's settings using a " +
+            "proprietary control panel or the Audio Midi Setup application. A default sample rate of 44100Hz will be used.");
+        sampleRate = 44100.0f;
+      } else {
+        for (AudioLet let : inputLets) {
+          if (!let.canSamplerate(sampleRate)) {
+            throw new IllegalArgumentException("The requested sample rate " + sampleRate + "Hz is not supported. " +
+                "It must be one of " + let.getAvailableSamplerates().toString() + "Hz.");
+          }
         }
       }
       currentInputDevice = device;
@@ -188,18 +206,36 @@ public class JCoreAudio {
       currentOutputDevice = null;
     } else {
       AudioDevice device = outputLets.iterator().next().device;
-      if (blockSize < device.getMinimumBufferSize()) {
+      if (device.getMinimumBufferSize() == 0) {
+        System.err.println("WARNING (JCoreAudio): The minimum buffer size of " + device.getName() +
+            " is reported as zero. This is an indication that the device is not responding correctly " +
+            "to the Core Audio API. It may be necessary to adjust the device's settings using a " +
+            "proprietary control panel or the Audio Midi Setup application.");
+      } else if (blockSize < device.getMinimumBufferSize()) {
         throw new IllegalArgumentException("The given blocksize is less than the minimum supported amount: " +
             blockSize +  " < " + device.getMinimumBufferSize());
       }
-      if (blockSize > device.getMaximumBufferSize()) {
+      if (device.getMaximumBufferSize() == 0) {
+        System.err.println("WARNING (JCoreAudio): The maximum buffer size of " + device.getName() +
+            " is reported as zero. This is an indication that the device is not responding correctly " +
+            "to the Core Audio API. It may be necessary to adjust the device's settings using a " +
+            "proprietary control panel or the Audio Midi Setup application.");
+      } else if (blockSize > device.getMaximumBufferSize()) {
         throw new IllegalArgumentException("The given blocksize is greater than the maximum supported amount: " +
             blockSize +  " < " + device.getMaximumBufferSize());
       }
-      for (AudioLet let : outputLets) {
-        if (!let.canSamplerate(sampleRate)) {
-          throw new IllegalArgumentException("The requested sample rate " + sampleRate + "Hz is not supported. " +
-              "It must be one of: " + let.getAvailableSamplerates().toString());
+      if (sampleRate == 0.0f) {
+        System.err.println("WARNING (JCoreAudio): A sample rate of zero is requested. If you got " +
+            "this value from getCurrentSampleRate(), this is an indication that the device is not responding correctly " +
+            "to the Core Audio API. It may be necessary to adjust the device's settings using a " +
+            "proprietary control panel or the Audio Midi Setup application. A default sample rate of 44100Hz will be used.");
+        sampleRate = 44100.0f;
+      } else {
+        for (AudioLet let : outputLets) {
+          if (!let.canSamplerate(sampleRate)) {
+            throw new IllegalArgumentException("The requested sample rate " + sampleRate + "Hz is not supported. " +
+                "It must be one of: " + let.getAvailableSamplerates().toString());
+          }
         }
       }
       currentOutputDevice = device;

@@ -61,14 +61,17 @@ public class AudioDevice {
   private static native void queryLetSet(AudioDevice device, int deviceId, boolean isInput,
       Set<AudioLet> set);
   
+  /** Returns the numerical system id of this device. */
   public int getId() {
     return id;
   }
   
+  /** Returns the name of this device. */
   public String getName() {
     return name;
   }
   
+  /** Returns the manufacturer of this device. */
   public String getManufacturer() {
     return manufacturer;
   }
@@ -90,27 +93,48 @@ public class AudioDevice {
     return new HashSet<AudioLet>(outputLetSet);
   }
   
-  /** Returns the current buffer size of this device. */
+  /**
+   * Returns the current buffer size of this device.<br/>
+   * <br/>
+   * <b>NOTE:</b> If the value is zero, this is an indication that the device does not respond
+   * correctly to the Core Audio API that setting should be changed via a proprietary control
+   * panel or the Audio Midi Setup utility.
+   */
   public int getCurrentBufferSize() {
     return getCurrentBufferSize(id);
   }
   private native static int getCurrentBufferSize(int id);
   
-  /** Returns the minimum buffer size of this device. */
+  /**
+   * Returns the minimum buffer size of this device.<br/>
+   * <br/>
+   * <b>NOTE:</b> If the value is zero, this is an indication that the device does not respond
+   * correctly to the Core Audio API that setting should be changed via a proprietary control
+   * panel or the Audio Midi Setup utility.
+   */
   public int getMinimumBufferSize() {
     return getMinimumBufferSize(id);
   }
   private static native int getMinimumBufferSize(int audioDeviceId);
   
-  /** Returns the maximum buffer size of this device. */
+  /**
+   * Returns the maximum buffer size of this device.<br/>
+   * <br/>
+   * <b>NOTE:</b> If the value is zero, this is an indication that the device does not respond
+   * correctly to the Core Audio API that setting should be changed via a proprietary control
+   * panel or the Audio Midi Setup utility.
+   */
   public int getMaximumBufferSize() {
     return getMaximumBufferSize(id);
   }
   private static native int getMaximumBufferSize(int audioDeviceid);
   
   /**
-   * Returns the current sample rate of this <code>AudioDevice</code>. This can be changed manually
-   * by using the OS X Audio MIDI Setup application.
+   * Returns the current sample rate of this <code>AudioDevice</code>.<br/>
+   * <br/>
+   * <b>NOTE:</b> If the value is zero, this is an indication that the device does not respond
+   * correctly to the Core Audio API that setting should be changed via a proprietary control
+   * panel or the Audio Midi Setup utility.
    */
   public float getCurrentSampleRate() {
     return getCurrentSampleRate(id);
