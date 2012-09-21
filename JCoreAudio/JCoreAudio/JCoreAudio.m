@@ -35,7 +35,7 @@ typedef struct JCoreAudioStruct {
   AudioUnit auhalOutput;
   int numChannelsInput;
   int numChannelsOutput;
-  float **channelsInput;
+  AudioBufferList *inputBufferList;
   float **channelsOutput;
   int blockSize;
 } JCoreAudioStruct;
@@ -59,23 +59,9 @@ OSStatus inputRenderCallback(void *inRefCon, AudioUnitRenderActionFlags *ioActio
   if (res == JNI_OK) {
     JCoreAudioStruct *jca = (JCoreAudioStruct *) inRefCon;
     
-    AudioBufferList *bufferList =
-        (AudioBufferList *) alloca(sizeof(AudioBufferList) + (sizeof(AudioBuffer)*(jca->numChannelsInput-1)));
-    bufferList->mNumberBuffers = jca->numChannelsInput;
-    for (int i = 0; i < jca->numChannelsInput; ++i) {
-      bufferList->mBuffers[i].mNumberChannels = 1;
-      bufferList->mBuffers[i].mDataByteSize = jca->blockSize * sizeof(float);
-      bufferList->mBuffers[i].mData = alloca(bufferList->mBuffers[i].mDataByteSize);
-      memset(bufferList->mBuffers[i].mData, 0, bufferList->mBuffers[i].mDataByteSize);
-    }
-    
     // render the input into the AudioBufferList
     AudioUnitRender(jca->auhalInput, ioActionFlags, inTimeStamp, inBusNumber,
-        inNumberFrames, bufferList);
-    
-    for (int i = 0; i < jca->numChannelsInput; ++i) {
-      memcpy(jca->channelsInput[i], bufferList->mBuffers[i].mData, bufferList->mBuffers[i].mDataByteSize);
-    }
+        inNumberFrames, jca->inputBufferList);
 
     // make audio callback to Java with the new input
     (*env)->CallStaticVoidMethod(env, jca->jclazzJCoreAudio, jca->fireOnCoreAudioInputMid, inTimeStamp->mSampleTime);
@@ -319,6 +305,8 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
   jcaStruct->auhalOutput = NULL;
   jcaStruct->numChannelsInput = 0;
   jcaStruct->numChannelsOutput = 0;
+  jcaStruct->inputBufferList = NULL;
+  jcaStruct->channelsOutput = NULL;
   OSStatus err = noErr;
     
   // create an AUHAL (for 10.6 and later)
@@ -370,12 +358,21 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
         kAudioUnitScope_Global, 0, 
         &jinputDeviceId, sizeof(AudioDeviceID));
     
+    jcaStruct->numChannelsInput = jnumChannelsInput;
+    AudioBufferList *bufferList =
+        (AudioBufferList *) malloc(sizeof(AudioBufferList) +
+            (sizeof(AudioBuffer)*(jcaStruct->numChannelsInput-1)));
+    bufferList->mNumberBuffers = 2; //jcaStruct->numChannelsInput;
+    for (int i = 0; i < jcaStruct->numChannelsInput; ++i) {
+      bufferList->mBuffers[i].mNumberChannels = 1;
+      bufferList->mBuffers[i].mDataByteSize = jblockSize * sizeof(float);
+    }
+    jcaStruct->inputBufferList = bufferList;
+    
     // configure channel map and channel backing buffers
     SInt32 channelMap[jnumChannelsInput];
     jclass jclazzAudioLet =  (*env)->FindClass(env, "ch/section6/jcoreaudio/AudioLet");
     jcaStruct->blockSize = jblockSize;
-    jcaStruct->numChannelsInput = jnumChannelsInput;
-    jcaStruct->channelsInput = (float **) malloc(jnumChannelsInput * sizeof(float *));
     for (int i = 0, k = 0; i < (*env)->GetArrayLength(env, jinputArray); i++) {
       // get the number of channels in this let
       jobject objAudioLet = (*env)->GetObjectArrayElement(env, jinputArray, i);
@@ -388,11 +385,13 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
       
       for (int j = 0; j < numChannels; j++, k++, channelIndex++) {
         // create the native backing buffer
-        jcaStruct->channelsInput[k] = (float *) calloc(jblockSize, sizeof(float));
+        bufferList->mBuffers[k].mNumberChannels = 1;
+        bufferList->mBuffers[k].mDataByteSize = jblockSize * sizeof(float);
+        bufferList->mBuffers[k].mData = calloc(jblockSize, sizeof(float));
         
         // create a new ByteBuffer
         jobject jByteBuffer = (*env)->NewDirectByteBuffer(
-            env, jcaStruct->channelsInput[k], jblockSize*sizeof(float));
+            env, bufferList->mBuffers[k].mData, bufferList->mBuffers[k].mDataByteSize);
         
         // assign ByteBuffer to channel
         (*env)->CallVoidMethod(env, objAudioLet,
@@ -608,10 +607,10 @@ JNIEXPORT void JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_uninitialize
   JCoreAudioStruct *jca = (JCoreAudioStruct *) nativePtr;
 
   if (jca->numChannelsInput > 0) {
-    for (int i = 0; i < jca->numChannelsInput; i++) {
-      free(jca->channelsInput[i]);
+    for (int i = 0; i < jca->inputBufferList->mNumberBuffers; i++) {
+      free(jca->inputBufferList->mBuffers[i].mData);
     }
-    free(jca->channelsInput);    
+    free(jca->inputBufferList);    
   }
   if (jca->numChannelsOutput > 0) {
     for (int i = 0; i < jca->numChannelsOutput; i++) {
