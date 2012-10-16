@@ -50,6 +50,17 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved) {
   return JNI_VERSION_1_4;
 }
 
+// calls System.out.println(message);
+void callSystemErrPrintln(JNIEnv *env, const char *message) {
+  jstring jstr = (*env)->NewStringUTF(env, message);
+  (*env)->CallObjectMethod(env,
+      (*env)->GetStaticObjectField(env,
+          (*env)->FindClass(env, "java/lang/System"), 
+          (*env)->GetStaticFieldID(env, (*env)->FindClass(env, "java/lang/System"), "err", "Ljava/io/PrintStream;")), 
+      (*env)->GetMethodID(env, (*env)->FindClass(env, "java/io/PrintStream"), "println", "(Ljava/lang/String;)V"), 
+      jstr);
+}
+
 // render callback for input AUHAL
 OSStatus inputRenderCallback(void *inRefCon, AudioUnitRenderActionFlags *ioActionFlags,
     const AudioTimeStamp *inTimeStamp, UInt32 inBusNumber, UInt32 inNumberFrames, AudioBufferList *ioData) {
@@ -332,6 +343,7 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
   };
   AudioObjectSetPropertyData(kAudioObjectSystemObject, &aopa, 0, NULL, sizeof(CFRunLoopRef), NULL);
     
+  // http://developer.apple.com/library/mac/#technotes/tn2091/_index.html
   if (jinputDeviceId != 0) {
     // the intput set is non-empty. Configure the input AUHAL.
     
@@ -344,6 +356,7 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
         kAudioOutputUnitProperty_EnableIO,
         kAudioUnitScope_Input, 1, // input element
         &enableIO, sizeof(UInt32));
+    if (err != noErr) callSystemErrPrintln(env, "Enable AUHAL input failed.");
     
     // disable output on the AUHAL
     enableIO = 0;
@@ -351,12 +364,14 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
         kAudioOutputUnitProperty_EnableIO,
         kAudioUnitScope_Output, 0, // output element
         &enableIO, sizeof(UInt32));
+    if (err != noErr) callSystemErrPrintln(env, "Disable AUHAL output failed.");
     
     // set the hardware device to which the AUHAL is connected
     err = AudioUnitSetProperty(jcaStruct->auhalInput,
         kAudioOutputUnitProperty_CurrentDevice, 
         kAudioUnitScope_Global, 0, 
         &jinputDeviceId, sizeof(AudioDeviceID));
+    if (err != noErr) callSystemErrPrintln(env, "Set hardware device to AUHAL failed.");
     
     jcaStruct->numChannelsInput = jnumChannelsInput;
     AudioBufferList *bufferList =
@@ -403,10 +418,17 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
     }
     
     // set the channel map
-    AudioUnitSetProperty(jcaStruct->auhalInput,
+    err = AudioUnitSetProperty(jcaStruct->auhalInput,
         kAudioOutputUnitProperty_ChannelMap,
         kAudioUnitScope_Output, 1,
         channelMap, sizeof(channelMap));
+    // NOTE(mhroth): why does newer function not work? Returns an error.
+//    AudioObjectPropertyAddress aopa = {
+//      kAudioOutputUnitProperty_ChannelMap,
+//      kAudioUnitScope_Output, 1
+//    };
+//    err = AudioObjectSetPropertyData(jinputDeviceId, &aopa, 0, NULL, sizeof(channelMap), channelMap);
+    if (err != noErr) callSystemErrPrintln(env, "Set input channel map failed.");
     
     // register audio callback
     AURenderCallbackStruct renderCallbackStruct;
@@ -416,28 +438,30 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
         kAudioOutputUnitProperty_SetInputCallback,
         kAudioUnitScope_Global, 0,
         &renderCallbackStruct, sizeof(AURenderCallbackStruct));
+    if (err != noErr) callSystemErrPrintln(env, "Register input audio callback failed.");
     
-    // configure output device to given sample rate
+    // configure input device to given sample rate
     AudioStreamBasicDescription asbd;
     UInt32 propSize = sizeof(AudioStreamBasicDescription);
     asbd.mBitsPerChannel = sizeof(float) * 8;
-    asbd.mBytesPerFrame = jcaStruct->numChannelsOutput * sizeof(float);
+    asbd.mBytesPerFrame = sizeof(float);
     asbd.mBytesPerPacket = asbd.mBytesPerFrame;
-    asbd.mChannelsPerFrame = jcaStruct->numChannelsOutput;
+    asbd.mChannelsPerFrame = 1;
     asbd.mFormatFlags = kAudioFormatFlagsNativeFloatPacked;
     asbd.mFormatID = kAudioFormatLinearPCM;
     asbd.mFramesPerPacket = 1;
     asbd.mReserved = 0;
     asbd.mSampleRate = (Float64) jsampleRate;
-    AudioUnitSetProperty(jcaStruct->auhalInput,
+    err = AudioUnitSetProperty(jcaStruct->auhalInput,
         kAudioUnitProperty_StreamFormat,
-        kAudioUnitScope_Input, 1,
+        kAudioUnitScope_Input, 0,
         &asbd, propSize);
+    if (err != noErr) callSystemErrPrintln(env, "Set input audio format failed.");
     
     // make sure that the expected audio format is reported
     AudioUnitGetProperty(jcaStruct->auhalInput,
         kAudioUnitProperty_StreamFormat,
-        kAudioUnitScope_Input, 1,
+        kAudioUnitScope_Input, 0,
         &asbd, &propSize);
     if (asbd.mFormatFlags != kAudioFormatFlagsNativeFloatPacked ||
         asbd.mBitsPerChannel != 32) {
@@ -459,13 +483,15 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
     propAddr.mScope = kAudioUnitScope_Global;
     propAddr.mElement = 0;
     Float64 sampleRate = (Float64) jsampleRate;
-    AudioObjectSetPropertyData(jinputDeviceId, &propAddr, 0, NULL, sizeof(Float64), &sampleRate);
+    err = AudioObjectSetPropertyData(jinputDeviceId, &propAddr, 0, NULL, sizeof(Float64), &sampleRate);
+    if (err != noErr) callSystemErrPrintln(env, "Set input sample rate failed.");
 
     // set requested block size
     AudioUnitSetProperty(jcaStruct->auhalInput,
         kAudioDevicePropertyBufferFrameSize,
         kAudioUnitScope_Output, 1,
         &jblockSize, sizeof(UInt32));
+    if (err != noErr) callSystemErrPrintln(env, "Set input block size failed.");
     
     // now that the AUHAL is set up, initialise it
     AudioUnitInitialize(jcaStruct->auhalInput);
