@@ -447,7 +447,8 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
     asbd.mBytesPerFrame = sizeof(float);
     asbd.mBytesPerPacket = asbd.mBytesPerFrame;
     asbd.mChannelsPerFrame = 1;
-    asbd.mFormatFlags = kAudioFormatFlagsNativeFloatPacked;
+    UInt32 formatFlags = kAudioFormatFlagIsPacked | kAudioFormatFlagIsNonInterleaved | kAudioFormatFlagIsFloat;
+    asbd.mFormatFlags = formatFlags; // kAudioFormatFlagsNativeFloatPacked
     asbd.mFormatID = kAudioFormatLinearPCM;
     asbd.mFramesPerPacket = 1;
     asbd.mReserved = 0;
@@ -463,7 +464,7 @@ JNIEXPORT jlong JNICALL Java_ch_section6_jcoreaudio_JCoreAudio_initialize
         kAudioUnitProperty_StreamFormat,
         kAudioUnitScope_Input, 0,
         &asbd, &propSize);
-    if (asbd.mFormatFlags != kAudioFormatFlagsNativeFloatPacked ||
+    if (asbd.mFormatFlags != formatFlags ||
         asbd.mBitsPerChannel != 32) {
       
       // clean up
