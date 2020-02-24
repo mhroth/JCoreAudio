@@ -1,5 +1,5 @@
 # JCoreAudio
-JCoreAudio (JCA) is a Java interface to Apple's OS X 10.6+ [Core Audio](http://developer.apple.com/library/ios/#documentation/MusicAudio/Conceptual/CoreAudioOverview/Introduction/Introduction.html) API. It provides low-latecy (< 10ms) input and output access to the available audio hardware, replacing the need to use the outdated and slow Java Sound API. This project is related to:
+JCoreAudio (JCA) is a Java interface to Apple's OS X 10.6+ [Core Audio](http://developer.apple.com/library/ios/#documentation/MusicAudio/Conceptual/CoreAudioOverview/Introduction/Introduction.html) API. It provides low-latency (< 10ms) input and output access to the available audio hardware, replacing the need to use the outdated and slow Java Sound API. This project is related to:
 * [JAsioHost](https://github.com/mhroth/jasiohost): a low-latency interface to ASIO on Windows
 * [FrogDisco](https://github.com/mhroth/FrogDisco): a low-latency interface to Core Audio with a simpler API
 
